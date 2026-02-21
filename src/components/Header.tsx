@@ -8,9 +8,9 @@ export default function Header() {
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50">
       <div className="navbar-start">
-        <button className="btn btn-ghost btn-circle">
-          <Menu className="w-5 h-5" />
-        </button>
+        {/* <button className="btn btn-ghost btn-circle"> */}
+        {/*   <Menu className="w-5 h-5" /> */}
+        {/* </button> */}
       </div>
       <div className="navbar-center gap-2">
         <CalendarHeart className="text-primary w-6 h-6" />

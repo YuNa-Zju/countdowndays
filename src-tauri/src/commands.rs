@@ -1,9 +1,9 @@
-use tauri::State;
 use sqlx::SqlitePool;
+use tauri::State;
 
+use crate::errors::AppResult;
 use crate::models::{CreateEventDto, Event, SearchEventDto, UpdateEventDto};
 use crate::repositories::EventRepository;
-use crate::errors::AppResult;
 
 /// 1. 创建日程
 #[tauri::command]
@@ -17,36 +17,25 @@ pub async fn create_event(
 
 /// 2. 获取所有日程
 #[tauri::command]
-pub async fn get_all_events(
-    pool: State<'_, SqlitePool>,
-) -> AppResult<Vec<Event>> {
+pub async fn get_all_events(pool: State<'_, SqlitePool>) -> AppResult<Vec<Event>> {
     EventRepository::get_all(&*pool).await
 }
 
 /// 3. 获取单个日程详情
 #[tauri::command]
-pub async fn get_event_by_id(
-    id: i64,
-    pool: State<'_, SqlitePool>,
-) -> AppResult<Event> {
+pub async fn get_event_by_id(id: i64, pool: State<'_, SqlitePool>) -> AppResult<Event> {
     EventRepository::get_by_id(&*pool, id).await
 }
 
 /// 4. 局部更新日程
 #[tauri::command]
-pub async fn update_event(
-    payload: UpdateEventDto,
-    pool: State<'_, SqlitePool>,
-) -> AppResult<u64> {
+pub async fn update_event(payload: UpdateEventDto, pool: State<'_, SqlitePool>) -> AppResult<u64> {
     EventRepository::update(&*pool, payload).await
 }
 
 /// 5. 删除日程
 #[tauri::command]
-pub async fn delete_event(
-    id: i64,
-    pool: State<'_, SqlitePool>,
-) -> AppResult<u64> {
+pub async fn delete_event(id: i64, pool: State<'_, SqlitePool>) -> AppResult<u64> {
     EventRepository::delete(&*pool, id).await
 }
 
@@ -59,3 +48,11 @@ pub async fn search_events(
     EventRepository::search(&*pool, payload).await
 }
 
+#[tauri::command]
+pub async fn get_all_categories(pool: State<'_, SqlitePool>) -> AppResult<Vec<Category>> {
+    EventRepository::get_all_categories(&*pool).await
+}
+#[tauri::command]
+pub async fn create_category(name: String, pool: State<'_, SqlitePool>) -> AppResult<i64> {
+    EventRepository::create_category(&*pool, name).await
+}

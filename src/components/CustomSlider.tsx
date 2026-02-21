@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 interface CustomSliderProps {
@@ -15,7 +15,7 @@ export default function CustomSlider({ value, onChange }: CustomSliderProps) {
     const rect = trackRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
     const percentage = Math.round((x / rect.width) * 100);
-    onChange(Math.max(1, percentage)); // 最小为 1
+    onChange(Math.max(1, Math.min(100, percentage))); // 严格限制在 1-100
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -33,21 +33,21 @@ export default function CustomSlider({ value, onChange }: CustomSliderProps) {
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
-  // 根据重要性（0-100）计算颜色深度（越红越深）
   const dynamicColor = `hsl(348, ${50 + value / 2}%, ${80 - value / 2.5}%)`;
 
   return (
-    <div className="py-4">
-      <div className="flex justify-between text-xs text-base-content/50 mb-2 font-medium">
+    <div className="py-2">
+      <div className="flex justify-between text-xs text-base-content/50 mb-3 font-medium">
         <span>普通</span>
-        <span style={{ color: dynamicColor }} className="font-bold">
+        <span style={{ color: dynamicColor }} className="font-bold text-sm">
           {value}
         </span>
         <span>极其紧急</span>
       </div>
+
       <div
         ref={trackRef}
-        className="h-3 bg-base-300 rounded-full relative cursor-pointer touch-none shadow-inner"
+        className="h-2 bg-base-200/70 rounded-full relative cursor-pointer touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -57,14 +57,15 @@ export default function CustomSlider({ value, onChange }: CustomSliderProps) {
           className="absolute top-0 left-0 h-full rounded-full"
           style={{ backgroundColor: dynamicColor }}
           animate={{ width: `${value}%` }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          /* 🌟 核心修复：拖拽时 duration 为 0 实现瞬间跟手，松手时才有过渡 */
+          transition={{ duration: isDragging ? 0 : 0.2, ease: "easeOut" }}
         />
         {/* 拖拽手柄 */}
         <motion.div
-          className="absolute top-1/2 w-6 h-6 bg-base-100 border-2 rounded-full shadow-md z-10"
+          className="absolute top-1/2 w-5 h-5 bg-base-100 border-2 rounded-full shadow-sm z-10"
           style={{ borderColor: dynamicColor, x: "-50%", y: "-50%" }}
-          animate={{ left: `${value}%`, scale: isDragging ? 1.2 : 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          animate={{ left: `${value}%`, scale: isDragging ? 1.15 : 1 }}
+          transition={{ duration: isDragging ? 0 : 0.2, ease: "easeOut" }}
         />
       </div>
     </div>

@@ -3,15 +3,23 @@ import { useEventStore } from "../store/eventStore";
 import { useUiBus } from "../store/uiBus";
 import EventCard from "./EventCard";
 import { LayoutGrid, Layers } from "lucide-react";
+import { sortEventsOptimally } from "../utils/dateUtils";
 
 export default function EventList() {
   const { events } = useEventStore();
   const { viewMode, toggleViewMode } = useUiBus();
 
-  const groupedEvents = events.reduce(
+  const sortedEvents = sortEventsOptimally(events);
+
+  // 🌟 修复: 因为现在是多对多（categories数组），我们取第一个标签名作为主分组名，没有则叫"未分类"
+  const groupedEvents = sortedEvents.reduce(
     (acc, event) => {
-      if (!acc[event.category]) acc[event.category] = [];
-      acc[event.category].push(event);
+      const mainCategoryName =
+        event.categories && event.categories.length > 0
+          ? event.categories[0].name
+          : "未分类";
+      if (!acc[mainCategoryName]) acc[mainCategoryName] = [];
+      acc[mainCategoryName].push(event);
       return acc;
     },
     {} as Record<string, typeof events>,
@@ -50,7 +58,7 @@ export default function EventList() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
             <AnimatePresence>
-              {events.map((event) => (
+              {sortedEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </AnimatePresence>
@@ -64,15 +72,15 @@ export default function EventList() {
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="space-y-5"
           >
-            {Object.entries(groupedEvents).map(([category, catEvents]) => (
+            {Object.entries(groupedEvents).map(([categoryName, catEvents]) => (
               <div
-                key={category}
+                key={categoryName}
                 className="collapse collapse-arrow bg-base-100 border border-base-200 shadow-sm rounded-3xl"
               >
                 <input type="checkbox" defaultChecked />
                 <div className="collapse-title text-xl font-medium flex items-center gap-3">
                   <span className="badge badge-primary badge-lg border-none">
-                    {category}
+                    {categoryName}
                   </span>
                   <span className="text-sm text-base-content/40 font-normal">
                     ({catEvents.length} 项)

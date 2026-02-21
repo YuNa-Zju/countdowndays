@@ -1,87 +1,122 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import { CheckCircle2, Trash2 } from "lucide-react";
-import { AppEvent, CreateEventDto, UpdateEventDto } from "../types";
-// ⚠️ 之后编译 Tauri 时解开这行注释：
-// import { invoke } from '@tauri-apps/api/core';
-
-const mockEvents: AppEvent[] = [
-  {
-    id: 1,
-    user_id: null,
-    title: "Tauri + React 项目完工",
-    description: "搞定前端样式，连通 Rust 后端，准备打包给朋友炫耀一下。",
-    target_date: "2026-03-01T12:00:00",
-    importance: 90, // 满分 100
-    category: "开发",
-    meta: "{}",
-  },
-  {
-    id: 2,
-    user_id: null,
-    title: "信用卡还款",
-    description: "本月账单出炉了，别忘了还款，逾期要扣利息的！",
-    target_date: "2026-02-28T23:59:59",
-    importance: 60,
-    category: "财务",
-    meta: "{}",
-  },
-];
+import { CheckCircle2, Trash2, XCircle } from "lucide-react";
+import { AppEvent, CreateEventDto, UpdateEventDto, Category } from "../types";
+import api from "../services/api";
 
 interface EventState {
   events: AppEvent[];
-  addEventOptimistic: (dto: CreateEventDto) => void;
-  updateEventOptimistic: (dto: UpdateEventDto) => void;
-  deleteEventOptimistic: (id: number) => void;
+  categories: Category[];
+  fetchData: () => Promise<void>;
+  addEventOptimistic: (dto: CreateEventDto) => Promise<void>;
+  updateEventOptimistic: (dto: UpdateEventDto) => Promise<void>;
+  deleteEventOptimistic: (id: number) => Promise<void>;
+  addCategoryOptimistic: (name: string) => Promise<number>;
 }
 
-export const useEventStore = create<EventState>((set) => ({
-  events: mockEvents,
+export const useEventStore = create<EventState>((set, get) => ({
+  events: [],
+  categories: [],
+
+  fetchData: async () => {
+    try {
+      // 通过 API 并发获取数据，管它是 Mock 还是 Rust，这里一概不管！
+      const [events, categories] = await Promise.all([
+        api.getAllEvents(),
+        api.getAllCategories(),
+      ]);
+      set({ events, categories });
+    } catch (error) {
+      console.error("数据加载失败:", error);
+      toast.error("数据加载失败，请检查数据库连接", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
+    }
+  },
 
   addEventOptimistic: async (dto) => {
-    /* // 真实后端调用逻辑 (解开注释使用)：
     try {
-      const newId = await invoke<number>('create_event', { payload: dto });
-      const newEvent = { ...dto, id: newId, user_id: null };
-      set((state) => ({ events: [newEvent, ...state.events] }));
-      toast('日程创建成功！', { icon: <CheckCircle2 className="w-5 h-5 text-success" /> });
-    } catch (e) {
-      toast.error(`创建失败: ${e}`);
-    }
-    */
+      const newId = await api.createEvent(dto);
 
-    // 当前模拟乐观加载：
-    const tempEvent: AppEvent = { ...dto, id: Date.now(), user_id: null };
-    set((state) => ({ events: [tempEvent, ...state.events] }));
-    toast("日程创建成功！", {
-      icon: <CheckCircle2 className="w-5 h-5 text-success" />,
-    });
+      const allCats = get().categories;
+      const selectedCats = dto.category_ids
+        .map((id) => allCats.find((c) => c.id === id)!)
+        .filter(Boolean);
+      const newEvent: AppEvent = {
+        ...dto,
+        id: newId,
+        user_id: null,
+        categories: selectedCats,
+      };
+
+      set((state) => ({ events: [newEvent, ...state.events] }));
+      toast("日程创建成功！", {
+        icon: <CheckCircle2 className="w-5 h-5 text-success" />,
+      });
+    } catch (error) {
+      console.error("创建日程失败:", error);
+      toast.error("创建失败", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
+    }
   },
 
   updateEventOptimistic: async (dto) => {
-    /*
-    // 真实后端调用逻辑：
     try {
-      await invoke('update_event', { payload: dto });
-      // 更新成功后修改前端状态...
-    } catch (e) {}
-    */
-    set((state) => ({
-      events: state.events.map((e) => (e.id === dto.id ? { ...e, ...dto } : e)),
-    }));
-    toast("日程已更新！", {
-      icon: <CheckCircle2 className="w-5 h-5 text-info" />,
-    });
+      await api.updateEvent(dto);
+
+      const allCats = get().categories;
+      set((state) => ({
+        events: state.events.map((e) => {
+          if (e.id === dto.id) {
+            const updated = { ...e, ...dto } as AppEvent;
+            if (dto.category_ids) {
+              updated.categories = dto.category_ids
+                .map((id) => allCats.find((c) => c.id === id)!)
+                .filter(Boolean);
+            }
+            return updated;
+          }
+          return e;
+        }),
+      }));
+      toast("日程已更新！", {
+        icon: <CheckCircle2 className="w-5 h-5 text-info" />,
+      });
+    } catch (error) {
+      console.error("更新日程失败:", error);
+      toast.error("更新失败", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
+    }
   },
 
   deleteEventOptimistic: async (id) => {
-    /*
-    // 真实后端调用逻辑：
     try {
-      await invoke('delete_event', { id });
-    } catch (e) {}
-    */
-    set((state) => ({ events: state.events.filter((e) => e.id !== id) }));
-    toast("日程已删除", { icon: <Trash2 className="w-5 h-5 text-error" /> });
+      await api.deleteEvent(id);
+      set((state) => ({ events: state.events.filter((e) => e.id !== id) }));
+      toast("日程已删除", { icon: <Trash2 className="w-5 h-5 text-error" /> });
+    } catch (error) {
+      console.error("删除日程失败:", error);
+      toast.error("删除失败", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
+    }
+  },
+
+  addCategoryOptimistic: async (name) => {
+    try {
+      const newId = await api.createCategory(name);
+      set((state) => ({
+        categories: [...state.categories, { id: newId, name }],
+      }));
+      return newId;
+    } catch (error) {
+      console.error("新建分类失败:", error);
+      toast.error("标签创建失败", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
+      throw error;
+    }
   },
 }));
