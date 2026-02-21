@@ -1,78 +1,98 @@
+import { useEffect } from "react";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
+import { Edit2, Trash2 } from "lucide-react";
+import AddEventModal from "./AddEventModal";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function GlobalModals() {
   const {
     isDeleteModalOpen,
     eventToDelete,
     closeDeleteModal,
-    isCreateModalOpen,
-    closeModal,
+    contextMenu,
+    closeContextMenu,
+    openEditModal,
+    openDeleteModal,
   } = useUiBus();
-  const { deleteEventOptimistic, addEventOptimistic } = useEventStore();
+  const { deleteEventOptimistic } = useEventStore();
 
   const handleDelete = () => {
     if (eventToDelete) deleteEventOptimistic(eventToDelete);
     closeDeleteModal();
   };
 
-  const handleMockCreate = () => {
-    addEventOptimistic({
-      title: "测试新日程",
-      description: "这是一个无刷新乐观加载出来的日程。",
-      target_date: new Date(Date.now() + 86400000 * 370).toISOString(),
-      importance: 2,
-      category: "生活",
-      meta: "{}",
-    });
-    closeModal();
-  };
+  // 全局点击监听：点击空白处关闭右键菜单
+  useEffect(() => {
+    if (!contextMenu.isOpen) return;
+    const handleClickOutside = () => closeContextMenu();
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [contextMenu.isOpen, closeContextMenu]);
 
   return (
     <>
-      {/* 1. 删除确认弹窗 */}
+      {/* 1. 全局浮动菜单 (解耦出来的卡片菜单) */}
+      <AnimatePresence>
+        {contextMenu.isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="fixed z-50 bg-base-100 border border-base-200 shadow-xl rounded-2xl py-2 w-32"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()} // 阻止冒泡，防止直接触发 window 的关闭
+          >
+            <button
+              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-base-200 hover:text-primary transition-colors text-sm"
+              onClick={() => {
+                openEditModal(contextMenu.eventId!);
+                closeContextMenu();
+              }}
+            >
+              <Edit2 className="w-4 h-4" /> 编辑
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-error/10 text-error transition-colors text-sm"
+              onClick={() => {
+                openDeleteModal(contextMenu.eventId!);
+                closeContextMenu();
+              }}
+            >
+              <Trash2 className="w-4 h-4" /> 删除
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. 删除确认弹窗 (胶囊风格按钮) */}
       <dialog className={`modal ${isDeleteModalOpen ? "modal-open" : ""}`}>
-        <div className="modal-box">
+        <div className="modal-box rounded-3xl">
           <h3 className="font-bold text-lg text-error">删除确认</h3>
           <p className="py-4">你确定要删除这个倒数日吗？此操作无法恢复。</p>
           <div className="modal-action">
-            <button className="btn" onClick={closeDeleteModal}>
+            <button
+              className="btn btn-ghost rounded-full"
+              onClick={closeDeleteModal}
+            >
               取消
             </button>
-            <button className="btn btn-error" onClick={handleDelete}>
+            <button
+              className="btn btn-error rounded-full px-6"
+              onClick={handleDelete}
+            >
               删除
             </button>
           </div>
         </div>
-        <form
-          method="dialog"
-          className="modal-backdrop"
-          onClick={closeDeleteModal}
-        >
+        <div className="modal-backdrop" onClick={closeDeleteModal}>
           <button>close</button>
-        </form>
+        </div>
       </dialog>
 
-      {/* 2. 新建/编辑弹窗 (临时用按钮代替表单测试) */}
-      <dialog className={`modal ${isCreateModalOpen ? "modal-open" : ""}`}>
-        <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">管理日程</h3>
-          <p className="text-sm text-base-content/60 mb-6">
-            点击下方按钮测试乐观加载和 Toast 提示：
-          </p>
-          <div className="flex gap-2">
-            <button
-              className="btn btn-primary flex-1"
-              onClick={handleMockCreate}
-            >
-              模拟生成一个日程
-            </button>
-          </div>
-        </div>
-        <form method="dialog" className="modal-backdrop" onClick={closeModal}>
-          <button>close</button>
-        </form>
-      </dialog>
+      {/* 3. 新建/编辑表单弹窗 */}
+      <AddEventModal />
     </>
   );
 }

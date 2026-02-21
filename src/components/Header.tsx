@@ -14,9 +14,7 @@ export default function Header() {
       </div>
       <div className="navbar-center gap-2">
         <CalendarHeart className="text-primary w-6 h-6" />
-        <a className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Momentary
-        </a>
+        <a className="text-xl font-bold text-base-content">Momentary</a>
       </div>
       <div className="navbar-end gap-2">
         <div className="form-control hidden md:block">
@@ -24,7 +22,7 @@ export default function Header() {
             <Search className="w-4 h-4 opacity-50" />
             <input
               type="text"
-              placeholder="搜索日程... (稍后替换为 cmdk)"
+              placeholder="搜索日程..."
               className="w-48"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
