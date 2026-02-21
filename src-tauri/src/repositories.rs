@@ -102,4 +102,21 @@ impl EventRepository {
         tx.commit().await?;
         Ok(rows)
     }
+    // 在 impl EventRepository 中添加
+    pub async fn delete_category(pool: &SqlitePool, id: i64) -> AppResult<u64> {
+        let mut tx = pool.begin().await?;
+        // 1. 首先删除所有日程与该分类的关联关系（维护引用完整性）
+        sqlx::query!("DELETE FROM event_categories WHERE category_id = ?1", id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 2. 删除分类本身
+        let rows = sqlx::query!("DELETE FROM categories WHERE id = ?1", id)
+            .execute(&mut *tx)
+            .await?
+            .rows_affected();
+
+        tx.commit().await?;
+        Ok(rows)
+    }
 }

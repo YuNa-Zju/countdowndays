@@ -1,69 +1,69 @@
-import { useState, useRef } from "react";
-import { Plus } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, X } from "lucide-react";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import CustomSlider from "./CustomSlider";
 import { format } from "date-fns";
 import { Category } from "../types";
 
-interface EventFormData {
-  title: string;
-  description: string;
-  target_date: string;
-  importance: number;
-  category_ids: number[];
-  event_type: "task" | "anniversary";
-}
-
+// ============================================================================
+// 1. 样式系统：回归简约与秩序
+// ============================================================================
 const styles = {
   input:
-    "appearance-none w-full min-w-0 box-border block bg-base-200/50 border border-base-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:bg-base-100 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-base-content/30",
+    "appearance-none w-full box-border block bg-base-200/50 border border-base-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:bg-base-100 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-base-content/30",
   label:
-    "block text-xs font-semibold text-base-content/50 uppercase tracking-widest mb-2 ml-1",
-  card: "bg-base-100 p-5 rounded-3xl border border-base-200 shadow-sm flex flex-col w-full min-w-0 overflow-hidden",
+    "block text-[10px] font-bold text-base-content/40 uppercase tracking-widest mb-2 ml-1",
+  card: "bg-base-100 p-5 rounded-2xl border border-base-200 shadow-sm flex flex-col w-full min-w-0 overflow-hidden",
 };
 
+// ============================================================================
+// 2. 基础设定区块
+// ============================================================================
 const BasicInfoSection = ({
   formData,
   updateField,
 }: {
-  formData: EventFormData;
+  formData: any;
   updateField: any;
 }) => (
   <div className={styles.card}>
-    <div className="flex justify-between items-center mb-5 gap-2">
-      <h4 className="text-sm font-bold text-base-content shrink-0">基础设定</h4>
-      <div className="flex bg-base-200 p-1 rounded-xl shadow-inner shrink-0">
+    <div className="flex justify-between items-center mb-4 gap-2">
+      <h4 className="text-xs font-bold text-base-content uppercase tracking-tighter">
+        基础信息
+      </h4>
+      <div className="flex bg-base-200 p-1 rounded-lg shrink-0">
         <button
           type="button"
-          className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${formData.event_type === "task" ? "bg-base-100 shadow-sm text-base-content" : "text-base-content/50 hover:text-base-content"}`}
+          className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.event_type === "task" ? "bg-base-100 shadow-sm text-warning" : "text-base-content/40"}`}
           onClick={() => updateField("event_type", "task")}
         >
           任务
         </button>
         <button
           type="button"
-          className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${formData.event_type === "anniversary" ? "bg-base-100 shadow-sm text-secondary" : "text-base-content/50 hover:text-base-content"}`}
+          className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${formData.event_type === "anniversary" ? "bg-base-100 shadow-sm text-info" : "text-base-content/40"}`}
           onClick={() => updateField("event_type", "anniversary")}
         >
           纪念日
         </button>
       </div>
     </div>
-    <div className="space-y-4 w-full min-w-0">
-      <div className="flex flex-col w-full min-w-0">
-        <label className={styles.label}>日程名称</label>
+
+    <div className="space-y-4">
+      <div className="flex flex-col">
+        <label className={styles.label}>名称</label>
         <input
           required
           type="text"
-          placeholder="例如：考研 / 跨年"
+          placeholder="起个名字..."
           className={styles.input}
           value={formData.title}
           onChange={(e) => updateField("title", e.target.value)}
         />
       </div>
-      <div className="flex flex-col w-full min-w-0">
-        <label className={styles.label}>目标日期</label>
+      <div className="flex flex-col">
+        <label className={styles.label}>日期</label>
         <input
           required
           type="date"
@@ -76,25 +76,24 @@ const BasicInfoSection = ({
   </div>
 );
 
+// ============================================================================
+// 3. 标签与描述区块
+// ============================================================================
 const MetaSection = ({
   formData,
   categories,
   updateField,
   onAddCategory,
 }: any) => {
+  const { deleteCategoryOptimistic } = useEventStore();
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const newTagInputRef = useRef<HTMLInputElement>(null);
 
-  // 🌟 修复：加上 async/await 等待后端返回真实的 tag ID
   const handleAddNewTag = async () => {
     if (newTagName.trim()) {
-      try {
-        const newId = await onAddCategory(newTagName.trim());
-        updateField("category_ids", [...formData.category_ids, newId]);
-      } catch (e) {
-        // 如果创建失败，直接静默即可，Store 会负责 Toast 报错
-      }
+      const newId = await onAddCategory(newTagName.trim());
+      updateField("category_ids", [...formData.category_ids, newId]);
     }
     setIsAddingTag(false);
     setNewTagName("");
@@ -112,14 +111,13 @@ const MetaSection = ({
 
   return (
     <div className={`${styles.card} h-full`}>
-      <h4 className="text-sm font-bold text-base-content mb-4 shrink-0">
-        详情与归档
+      <h4 className="text-xs font-bold text-base-content mb-4 uppercase tracking-tighter">
+        分类备注
       </h4>
-      <div className="flex flex-col w-full min-w-0 mb-5">
-        <label className={styles.label}>分组标签 (多选)</label>
-        <div
-          className={`w-full min-w-0 bg-base-200/30 border rounded-2xl p-3 flex flex-wrap gap-2 items-center transition-all ${isAddingTag ? "border-primary bg-base-100 ring-2 ring-primary/10" : "border-base-300"}`}
-        >
+
+      <div className="mb-4">
+        <label className={styles.label}>标签</label>
+        <div className="bg-base-200/30 border border-base-200 rounded-xl p-3 flex flex-wrap gap-2 items-center">
           {categories.map((cat: Category) => {
             const isSelected = formData.category_ids.includes(cat.id);
             return (
@@ -127,19 +125,27 @@ const MetaSection = ({
                 key={cat.id}
                 type="button"
                 onClick={() => toggleCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isSelected ? "bg-primary text-primary-content border-primary shadow-sm scale-105" : "bg-base-100 text-base-content/60 border-base-300 hover:border-base-400"}`}
+                className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all
+                  ${isSelected ? "bg-primary text-primary-content" : "bg-base-100 text-base-content/40 hover:bg-base-200"}`}
               >
                 {cat.name}
+                <X
+                  className="w-3 h-3 opacity-40 hover:text-error transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("删除标签？")) deleteCategoryOptimistic(cat.id);
+                  }}
+                />
               </button>
             );
           })}
+
           {isAddingTag ? (
             <input
               ref={newTagInputRef}
               type="text"
               autoFocus
-              placeholder="回车确认"
-              className="bg-transparent border-none focus:outline-none text-xs font-bold w-20 h-7 px-1 text-base-content placeholder:text-base-content/30 min-w-0"
+              className="bg-transparent border-none text-[10px] font-bold w-16 px-1 outline-none"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onBlur={handleAddNewTag}
@@ -151,18 +157,19 @@ const MetaSection = ({
             <button
               type="button"
               onClick={() => setIsAddingTag(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold border border-dashed border-base-300 text-base-content/50 hover:text-base-content hover:border-base-400 flex items-center gap-1 transition-colors"
+              className="p-1.5 rounded-full border border-dashed border-base-300 text-base-content/30 hover:text-primary transition-colors"
             >
-              <Plus className="w-3 h-3" /> 新建
+              <Plus className="w-3 h-3" />
             </button>
           )}
         </div>
       </div>
-      <div className="flex flex-col flex-1 w-full min-w-0">
-        <label className={styles.label}>详细描述</label>
+
+      <div className="flex-1 flex flex-col">
+        <label className={styles.label}>详情备注</label>
         <textarea
-          placeholder="写点什么备注一下..."
-          className={`${styles.input} flex-1 min-h-[5rem] resize-none`}
+          placeholder="记点什么..."
+          className={`${styles.input} flex-1 min-h-[100px] resize-none`}
           value={formData.description}
           onChange={(e) => updateField("description", e.target.value)}
         />
@@ -171,6 +178,9 @@ const MetaSection = ({
   );
 };
 
+// ============================================================================
+// 4. 主表单组装
+// ============================================================================
 function EventForm({
   initialData,
   categories,
@@ -179,37 +189,27 @@ function EventForm({
   onCancel,
   onAddCategory,
 }: any) {
-  const [formData, setFormData] = useState<EventFormData>(initialData);
-
-  const updateField = <K extends keyof EventFormData>(
-    field: K,
-    value: EventFormData[K],
-  ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    if (!formData.title || !formData.target_date) return;
-    onSubmit(formData);
-  };
+  const [formData, setFormData] = useState(initialData);
+  const updateField = (field: string, value: any) =>
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
 
   return (
     <form
-      id="event-form"
-      onSubmit={handleSubmit}
-      className="flex flex-col h-full overflow-hidden w-full min-w-0"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(formData);
+      }}
+      className="flex flex-col h-full overflow-hidden"
     >
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-200/40 w-full min-w-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full min-w-0">
-          <div className="space-y-5 w-full min-w-0 flex flex-col">
+      <div className="flex-1 overflow-y-auto p-5 md:p-6 bg-base-200/30">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+          <div className="space-y-5">
             <BasicInfoSection formData={formData} updateField={updateField} />
             <div className={styles.card}>
-              <h4 className="text-sm font-bold text-base-content mb-4 shrink-0">
+              <h4 className="text-xs font-bold text-base-content mb-3 uppercase tracking-tighter">
                 优先级
               </h4>
-              <label className={styles.label}>重要程度评估</label>
-              <div className="bg-base-200/30 border border-base-300 rounded-2xl p-4 shadow-inner w-full min-w-0">
+              <div className="bg-base-200/30 border border-base-300 rounded-xl p-4 shadow-inner">
                 <CustomSlider
                   value={formData.importance}
                   onChange={(val) => updateField("importance", val)}
@@ -217,30 +217,29 @@ function EventForm({
               </div>
             </div>
           </div>
-          <div className="w-full min-w-0 flex flex-col">
-            <MetaSection
-              formData={formData}
-              categories={categories}
-              updateField={updateField}
-              onAddCategory={onAddCategory}
-            />
-          </div>
+
+          <MetaSection
+            formData={formData}
+            categories={categories}
+            updateField={updateField}
+            onAddCategory={onAddCategory}
+          />
         </div>
       </div>
 
-      <div className="p-4 px-6 border-t border-base-200 bg-base-100 shrink-0 flex justify-end gap-3 rounded-b-[2rem]">
+      <div className="p-4 px-6 border-t border-base-200 bg-base-100 flex justify-end items-center gap-4">
         <button
           type="button"
-          className="btn btn-ghost rounded-xl font-bold"
+          className="text-xs font-bold text-base-content/30 hover:text-base-content uppercase"
           onClick={onCancel}
         >
           取消
         </button>
         <button
           type="submit"
-          className="btn btn-primary rounded-xl px-8 font-bold shadow-sm"
+          className="btn btn-primary btn-md rounded-xl px-8 font-bold text-xs uppercase tracking-widest shadow-md shadow-primary/10"
         >
-          {isEditing ? "保存修改" : "创建日程"}
+          {isEditing ? "更新日程" : "保存日程"}
         </button>
       </div>
     </form>
@@ -257,19 +256,15 @@ export default function AddEventModal() {
     addCategoryOptimistic,
   } = useEventStore();
 
-  const generateInitialData = (): EventFormData => {
+  const generateInitialData = () => {
     if (editingEventId) {
       const ev = events.find((e) => e.id === editingEventId);
-      if (ev) {
+      if (ev)
         return {
-          title: ev.title,
-          description: ev.description,
+          ...ev,
           target_date: format(new Date(ev.target_date), "yyyy-MM-dd"),
-          importance: ev.importance,
           category_ids: ev.categories.map((c) => c.id),
-          event_type: ev.event_type,
         };
-      }
     }
     return {
       title: "",
@@ -281,46 +276,48 @@ export default function AddEventModal() {
     };
   };
 
-  // 🌟 修复：加上 async/await，让表单等待真实后端响应后再关闭弹窗
-  const handleFormSubmit = async (data: EventFormData) => {
-    const isoDate = new Date(data.target_date).toISOString();
-    try {
-      if (editingEventId) {
-        await updateEventOptimistic({
-          id: editingEventId,
-          ...data,
-          target_date: isoDate,
-        });
-      } else {
-        await addEventOptimistic({ ...data, target_date: isoDate, meta: "{}" });
-      }
-      closeModal();
-    } catch (e) {
-      // 报错已经在 Store 层 Toast 处理过了，这里只需要拦截不关闭 Modal 即可
-    }
-  };
-
   return (
     <dialog className={`modal ${isCreateModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-4xl p-0 rounded-[2rem] bg-base-100 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden min-w-0">
-        <div className="px-6 py-5 border-b border-base-200 shrink-0 bg-base-100">
-          <h3 className="font-extrabold text-xl text-base-content tracking-tight">
-            {editingEventId ? "编辑倒数日" : "新建倒数日"}
+      <div className="modal-box w-11/12 max-w-4xl p-0 rounded-2xl bg-base-100 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+        <div className="px-6 py-4 border-b border-base-200 flex justify-between items-center">
+          <h3 className="font-bold text-sm uppercase tracking-widest text-base-content/60">
+            {editingEventId ? "Edit Event" : "New Event"}
           </h3>
+          <button
+            onClick={closeModal}
+            className="btn btn-ghost btn-xs btn-circle opacity-30 hover:opacity-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
         {isCreateModalOpen && (
           <EventForm
             initialData={generateInitialData()}
             categories={categories}
             isEditing={!!editingEventId}
-            onSubmit={handleFormSubmit}
+            onSubmit={async (data: any) => {
+              const iso = new Date(data.target_date).toISOString();
+              if (editingEventId)
+                await updateEventOptimistic({
+                  ...data,
+                  target_date: iso,
+                  id: editingEventId,
+                });
+              else
+                await addEventOptimistic({
+                  ...data,
+                  target_date: iso,
+                  meta: "{}",
+                });
+              closeModal();
+            }}
             onCancel={closeModal}
             onAddCategory={addCategoryOptimistic}
           />
         )}
       </div>
       <div
-        className="modal-backdrop bg-neutral/30 backdrop-blur-sm"
+        className="modal-backdrop bg-neutral/20 backdrop-blur-sm"
         onClick={closeModal}
       >
         <button>close</button>

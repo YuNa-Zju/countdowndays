@@ -1,10 +1,43 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: nord, dim;
+  themes: nord, dracula;
 }
 
 /* 隐藏滚动条，保持页面整洁 */
 ::-webkit-scrollbar {
   width: 0px;
   background: transparent;
+}
+
+/* cmdk 样式补充 */
+[cmdk-dialog] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  max-width: 600px;
+  z-index: 100;
+}
+
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+}
+
+[cmdk-group-heading] {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fallback-bc, oklch(var(--bc) / 0.5));
+}
+
+[cmdk-empty] {
+  padding: 32px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--fallback-bc, oklch(var(--bc) / 0.5));
 }

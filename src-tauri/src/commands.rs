@@ -56,3 +56,8 @@ pub async fn get_all_categories(pool: State<'_, SqlitePool>) -> AppResult<Vec<Ca
 pub async fn create_category(name: String, pool: State<'_, SqlitePool>) -> AppResult<i64> {
     EventRepository::create_category(&*pool, name).await
 }
+
+#[tauri::command]
+pub async fn delete_category(id: i64, pool: State<'_, SqlitePool>) -> AppResult<u64> {
+    EventRepository::delete_category(&*pool, id).await
+}

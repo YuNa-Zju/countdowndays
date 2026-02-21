@@ -12,11 +12,11 @@ export default function ThemeToggle() {
       const isSystemDark = mediaQuery.matches;
       // 暗黑模式使用 dim，亮色模式使用 nord
       const shouldUseDark =
-        theme === "dim" || (theme === "system" && isSystemDark);
+        theme === "dracula" || (theme === "system" && isSystemDark);
       setIsDark(shouldUseDark);
       document.documentElement.setAttribute(
         "data-theme",
-        shouldUseDark ? "dim" : "nord",
+        shouldUseDark ? "dracula" : "nord",
       );
     };
     applyTheme();
@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     return () => mediaQuery.removeEventListener("change", applyTheme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(isDark ? "nord" : "dim");
+  const toggleTheme = () => setTheme(isDark ? "nord" : "dracula");
 
   return (
     <label className="swap swap-rotate btn btn-ghost btn-circle">

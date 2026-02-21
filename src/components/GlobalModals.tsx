@@ -3,6 +3,7 @@ import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { Edit2, Trash2 } from "lucide-react";
 import AddEventModal from "./AddEventModal";
+import CommandPalette from "./CommandPalette"; // 🌟 引入
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function GlobalModals() {
@@ -22,7 +23,6 @@ export default function GlobalModals() {
     closeDeleteModal();
   };
 
-  // 全局点击监听：点击空白处关闭右键菜单
   useEffect(() => {
     if (!contextMenu.isOpen) return;
     const handleClickOutside = () => closeContextMenu();
@@ -32,7 +32,7 @@ export default function GlobalModals() {
 
   return (
     <>
-      {/* 1. 全局浮动菜单 (解耦出来的卡片菜单) */}
+      {/* 全局浮动菜单 */}
       <AnimatePresence>
         {contextMenu.isOpen && (
           <motion.div
@@ -42,7 +42,7 @@ export default function GlobalModals() {
             transition={{ duration: 0.15 }}
             className="fixed z-50 bg-base-100 border border-base-200 shadow-xl rounded-2xl py-2 w-32"
             style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={(e) => e.stopPropagation()} // 阻止冒泡，防止直接触发 window 的关闭
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               className="flex items-center gap-2 w-full px-4 py-2 hover:bg-base-200 hover:text-primary transition-colors text-sm"
@@ -65,8 +65,6 @@ export default function GlobalModals() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* 2. 删除确认弹窗 (胶囊风格按钮) */}
       <dialog className={`modal ${isDeleteModalOpen ? "modal-open" : ""}`}>
         <div className="modal-box rounded-3xl">
           <h3 className="font-bold text-lg text-error">删除确认</h3>
@@ -90,9 +88,8 @@ export default function GlobalModals() {
           <button>close</button>
         </div>
       </dialog>
-
-      {/* 3. 新建/编辑表单弹窗 */}
       <AddEventModal />
+      <CommandPalette /> {/* 🌟 挂载全局 Cmdk */}
     </>
   );
 }

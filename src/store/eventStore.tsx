@@ -12,6 +12,7 @@ interface EventState {
   updateEventOptimistic: (dto: UpdateEventDto) => Promise<void>;
   deleteEventOptimistic: (id: number) => Promise<void>;
   addCategoryOptimistic: (name: string) => Promise<number>;
+  deleteCategoryOptimistic: (id: number) => Promise<void>;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -117,6 +118,23 @@ export const useEventStore = create<EventState>((set, get) => ({
         icon: <XCircle className="w-5 h-5 text-error" />,
       });
       throw error;
+    }
+  },
+  deleteCategoryOptimistic: async (id: number) => {
+    try {
+      await api.deleteCategory(id);
+      set((state) => ({
+        // 1. 移除分类库中的该项
+        categories: state.categories.filter((c) => c.id !== id),
+        // 2. 🌟 核心：遍历所有日程，移除它们已关联的该标签
+        events: state.events.map((event) => ({
+          ...event,
+          categories: event.categories.filter((cat) => cat.id !== id),
+        })),
+      }));
+      toast.success("标签已彻底删除");
+    } catch (error) {
+      toast.error("标签删除失败");
     }
   },
 }));

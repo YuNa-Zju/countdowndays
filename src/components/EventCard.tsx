@@ -1,6 +1,11 @@
-import { useEffect } from "react";
-import { motion } from "framer-motion";
-import { MoreHorizontal } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  MoreHorizontal,
+  CalendarHeart,
+  History,
+  ExternalLink,
+} from "lucide-react";
 import {
   isBefore,
   differenceInDays,
@@ -8,10 +13,34 @@ import {
   isSameDay,
   startOfDay,
   format,
+  intervalToDuration,
 } from "date-fns";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { AppEvent } from "../types";
+
+// 🌟 链接解析：保持点击在新窗口打开
+const renderDescription = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline inline-flex items-center gap-0.5 hover:opacity-80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          链接 <ExternalLink className="w-3 h-3" />
+        </a>
+      );
+    }
+    return part;
+  });
+};
 
 interface EventCardProps {
   event: AppEvent;
@@ -21,130 +50,175 @@ export default function EventCard({ event }: EventCardProps) {
   const { openContextMenu } = useUiBus();
   const { deleteEventOptimistic } = useEventStore();
 
-  // 消除时分秒的干扰，全按“今天 00:00”来算
+  // 🌟 悬浮窗状态逻辑：支持鼠标移入弹窗不消失
+  const [showTooltip, setShowTooltip] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    // 给一点延迟，方便用户将鼠标从文字移到弹窗上
+    timeoutRef.current = window.setTimeout(() => {
+      setShowTooltip(false);
+    }, 200);
+  };
+
   const today = startOfDay(new Date());
   const originalTarget = startOfDay(new Date(event.target_date));
+  const isAnniversary = event.event_type === "anniversary";
 
   let displayDays = 0;
   let isPast = false;
   let prefixText = "";
+  let elapsedText = "";
   let targetDisplayDate = originalTarget;
 
-  if (event.event_type === "anniversary") {
-    // 🎂【纪念日逻辑】：寻找下一次该日期
-    let nextAnniversary = setYear(originalTarget, today.getFullYear());
-    // 如果今年的已经过去了（且不是今天），就拨到明年
-    if (
-      isBefore(nextAnniversary, today) &&
-      !isSameDay(nextAnniversary, today)
-    ) {
-      nextAnniversary = setYear(originalTarget, today.getFullYear() + 1);
+  if (isAnniversary) {
+    if (isBefore(originalTarget, today) || isSameDay(originalTarget, today)) {
+      const dur = intervalToDuration({ start: originalTarget, end: today });
+      elapsedText = `${dur.years || 0}年${dur.months || 0}月${dur.days || 0}天`;
     }
-    displayDays = differenceInDays(nextAnniversary, today);
-    prefixText = displayDays === 0 ? "今天" : "距离下一次";
-    targetDisplayDate = nextAnniversary; // 进度条按下一个周期算
+    let nextAnniv = setYear(originalTarget, today.getFullYear());
+    if (isBefore(nextAnniv, today) && !isSameDay(nextAnniv, today)) {
+      nextAnniv = setYear(originalTarget, today.getFullYear() + 1);
+    }
+    displayDays = differenceInDays(nextAnniv, today);
+    prefixText = "NEXT";
+    targetDisplayDate = nextAnniv;
   } else {
-    // 📝【任务逻辑】：一次性
     isPast =
       isBefore(originalTarget, today) && !isSameDay(originalTarget, today);
     displayDays = Math.abs(differenceInDays(originalTarget, today));
-    prefixText = isPast ? "已过期" : displayDays === 0 ? "今天" : "还剩";
-    targetDisplayDate = originalTarget;
-
-    // 【自动删除逻辑】：如果是任务且已过期，触发清理（延迟 1 秒执行避免渲染冲突）
-    useEffect(() => {
-      if (isPast) {
-        const timer = setTimeout(() => deleteEventOptimistic(event.id), 1000);
+    prefixText = isPast ? "PAST" : "LEFT";
+    if (isPast) {
+      useEffect(() => {
+        const timer = setTimeout(() => deleteEventOptimistic(event.id), 2000);
         return () => clearTimeout(timer);
-      }
-    }, [isPast, event.id, deleteEventOptimistic]);
+      }, []);
+    }
   }
 
-  // 进度条逻辑 (纪念日按365天算满，任务也暂定365天视觉)
-  const maxDays = 365;
-  const progressValue = isPast ? maxDays : Math.max(0, maxDays - displayDays);
-
-  const importanceColor = `hsl(348, ${50 + event.importance / 2}%, ${90 - event.importance / 1.5}%)`;
-
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    openContextMenu(e.clientX - 100, e.clientY + 20, event.id);
-  };
-
-  // 如果是任务且过期了，因为 useEffect 会在1秒后删掉它，我们可以给它个渐渐消失的状态
-  if (event.event_type === "task" && isPast) {
-    return null; // 或者保留视觉效果，等待 useEffect 自动销毁
-  }
+  // 🌟 原本顶部的颜色现在被提取出来准备注入给进度条
+  const importanceColor = `hsl(348, ${50 + event.importance / 2}%, ${65 - event.importance / 3}%)`;
 
   return (
     <motion.div
       layout="position"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="card bg-base-100 shadow-sm border border-base-200 overflow-hidden relative group"
+      /* 🌟 颜色方案：任务用 Warning 背景，纪念日用 Info 背景，在 Nord 下非常清晰 */
+      className={`card shadow-sm border border-base-200 overflow-visible relative group h-full flex flex-col transition-all duration-300
+        ${isAnniversary ? "bg-info/10 hover:bg-info/15" : "bg-warning/10 hover:bg-warning/15"}`}
     >
-      <div
-        className="absolute top-0 left-0 w-full h-1"
-        style={{ backgroundColor: importanceColor }}
-      />
-
-      <div className="card-body p-5 pt-6">
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2 pr-2 overflow-hidden">
-            <span
-              className={`badge badge-sm border-none shrink-0 ${event.event_type === "anniversary" ? "bg-secondary/20 text-secondary" : "bg-primary/20 text-primary"}`}
-            >
-              {event.event_type === "anniversary" ? "纪念" : "任务"}
-            </span>
-            <h2 className="card-title text-lg truncate">{event.title}</h2>
-          </div>
+      <div className="card-body p-6 flex flex-col flex-1">
+        {/* 顶部：类型胶囊与操作 */}
+        <div className="flex justify-between items-start mb-4">
+          <span
+            className={`badge badge-lg rounded-full font-black border-none text-[10px] tracking-widest uppercase py-3 px-4
+            ${isAnniversary ? "bg-info text-info-content" : "bg-warning text-warning-content"}`}
+          >
+            {isAnniversary ? "Anniversary" : "Task"}
+          </span>
           <button
-            onClick={handleMenuClick}
-            className="btn btn-sm btn-circle btn-ghost -mr-2 text-base-content/50 hover:text-base-content transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              openContextMenu(e.clientX - 100, e.clientY + 20, event.id);
+            }}
+            className="btn btn-sm btn-circle btn-ghost -mr-3 opacity-30 group-hover:opacity-100 transition-opacity"
           >
             <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-sm text-base-content/60 line-clamp-2 min-h-[2.5rem]">
-          {event.description}
-        </p>
+        <h2 className="card-title text-2xl font-black text-base-content tracking-tight line-clamp-1 mb-1">
+          {event.title}
+        </h2>
 
-        <div className="mt-4 flex flex-col justify-end">
+        {/* 备注 & 交互式悬浮窗 */}
+        <div
+          className="relative"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <p className="text-base text-base-content/60 line-clamp-2 cursor-help">
+            {renderDescription(event.description)}
+          </p>
+          <AnimatePresence>
+            {showTooltip && event.description.length > 20 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                className="absolute z-[60] top-full left-0 mt-2 p-5 bg-base-100 border border-base-300 shadow-2xl rounded-2xl w-72 text-sm leading-relaxed text-base-content"
+              >
+                <div className="font-bold text-xs uppercase opacity-40 mb-2 tracking-widest">
+                  备注详情
+                </div>
+                {renderDescription(event.description)}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {isAnniversary && (
+          <div className="mt-4 space-y-1 text-xs font-bold text-base-content/50 bg-base-100/40 p-3 rounded-2xl border border-base-content/5">
+            <div className="flex items-center gap-2">
+              <CalendarHeart className="w-3.5 h-3.5" />
+              {format(originalTarget, "yyyy/MM/dd")} 开启
+            </div>
+            <div className="flex items-center gap-2">
+              <History className="w-3.5 h-3.5" />
+              已陪伴 {elapsedText}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-auto pt-8">
           <div
-            className={`font-black text-3xl md:text-4xl tracking-tight flex items-baseline gap-2 ${displayDays === 0 ? "text-secondary" : "text-primary"}`}
+            className={`font-black text-6xl tracking-tighter flex items-baseline gap-2 ${displayDays === 0 ? "text-secondary" : "text-primary"}`}
           >
-            <span className="text-sm font-medium text-base-content/50">
+            <span className="text-xs font-black opacity-30 tracking-[0.2em]">
               {prefixText}
             </span>
-            {displayDays} <span className="text-lg font-bold">天</span>
+            {displayDays}
+            <span className="text-2xl font-black">天</span>
           </div>
         </div>
 
-        <div className="mt-5 space-y-2">
-          <div className="flex justify-between items-end text-xs text-base-content/50 font-medium">
-            <div className="flex flex-wrap gap-1.5">
+        {/* 底部对齐的进度条与胶囊标签 */}
+        <div className="mt-6 space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div className="flex flex-wrap gap-2">
               {event.categories.map((c) => (
                 <span
                   key={c.id}
-                  className="badge badge-outline border-base-300 text-[10px] px-2 py-1 h-auto"
+                  className="px-4 py-1.5 rounded-full bg-base-100/60 border-none text-[10px] font-black text-base-content/50 uppercase tracking-tighter shadow-none"
                 >
                   {c.name}
                 </span>
               ))}
             </div>
-            {/* 纪念日显示下一次的日期，任务显示原本日期 */}
-            <span className="shrink-0 ml-2">
+            <span className="text-[10px] font-black opacity-20 whitespace-nowrap">
               {format(targetDisplayDate, "yyyy/MM/dd")}
             </span>
           </div>
-          <progress
-            className={`progress w-full h-1.5 ${displayDays === 0 ? "progress-secondary" : "progress-primary"}`}
-            value={progressValue}
-            max={maxDays}
-          ></progress>
+
+          {/* 🌟 进度条：移除了原生样式的干扰，使用自定义颜色注入 */}
+          <div className="w-full h-3 bg-base-content/5 rounded-full overflow-hidden shadow-inner">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{
+                width: `${Math.max(5, ((365 - displayDays) / 365) * 100)}%`,
+              }}
+              style={{ backgroundColor: importanceColor }}
+              className="h-full rounded-full transition-all duration-1000"
+            />
+          </div>
         </div>
       </div>
     </motion.div>

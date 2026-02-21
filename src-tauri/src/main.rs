@@ -33,6 +33,7 @@ async fn main() {
             commands::search_events,
             commands::get_all_categories,
             commands::create_category,
+            commands::delete_category,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

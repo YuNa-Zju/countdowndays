@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type Theme = "nord" | "dim" | "system";
+type Theme = "nord" | "dracula" | "system";
 type ViewMode = "flat" | "grouped";
 
 interface ContextMenuState {
@@ -11,16 +11,19 @@ interface ContextMenuState {
 }
 
 interface UiState {
-  searchQuery: string;
+  isCmdkOpen: boolean; // 🌟 控制 Cmdk 唤起
   isCreateModalOpen: boolean;
-  editingEventId: number | null; // null 表示新建，有值表示编辑
+  editingEventId: number | null;
   theme: Theme;
   isDeleteModalOpen: boolean;
   eventToDelete: number | null;
   viewMode: ViewMode;
   contextMenu: ContextMenuState;
 
-  setSearchQuery: (query: string) => void;
+  openCmdk: () => void;
+  closeCmdk: () => void;
+  toggleCmdk: () => void;
+
   openCreateModal: () => void;
   openEditModal: (id: number) => void;
   closeModal: () => void;
@@ -33,7 +36,7 @@ interface UiState {
 }
 
 export const useUiBus = create<UiState>((set) => ({
-  searchQuery: "",
+  isCmdkOpen: false,
   isCreateModalOpen: false,
   editingEventId: null,
   theme: "system",
@@ -42,9 +45,14 @@ export const useUiBus = create<UiState>((set) => ({
   viewMode: "flat",
   contextMenu: { isOpen: false, x: 0, y: 0, eventId: null },
 
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  openCreateModal: () => set({ isCreateModalOpen: true, editingEventId: null }),
-  openEditModal: (id) => set({ isCreateModalOpen: true, editingEventId: id }),
+  openCmdk: () => set({ isCmdkOpen: true }),
+  closeCmdk: () => set({ isCmdkOpen: false }),
+  toggleCmdk: () => set((state) => ({ isCmdkOpen: !state.isCmdkOpen })),
+
+  openCreateModal: () =>
+    set({ isCreateModalOpen: true, editingEventId: null, isCmdkOpen: false }),
+  openEditModal: (id) =>
+    set({ isCreateModalOpen: true, editingEventId: id, isCmdkOpen: false }),
   closeModal: () => set({ isCreateModalOpen: false, editingEventId: null }),
   setTheme: (theme) => set({ theme }),
   openDeleteModal: (id) => set({ isDeleteModalOpen: true, eventToDelete: id }),
@@ -54,8 +62,6 @@ export const useUiBus = create<UiState>((set) => ({
     set((state) => ({
       viewMode: state.viewMode === "flat" ? "grouped" : "flat",
     })),
-
-  // 菜单在被开启时会自动关闭现有的，并更新坐标
   openContextMenu: (x, y, eventId) =>
     set({ contextMenu: { isOpen: true, x, y, eventId } }),
   closeContextMenu: () =>
