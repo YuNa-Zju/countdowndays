@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: pastel, dim;
+}
+/* 增强淡彩风的层级感 */
+[data-theme="pastel"] {
+  --b1: 0 0% 100%; /* 卡片用纯白 (Base-100) */
+  --b2: 210 20% 98%; /* 整体背景用极浅的灰蓝 (Base-200) */
+  --b3: 210 20% 90%; /* 边框颜色加深一点 */
+}
