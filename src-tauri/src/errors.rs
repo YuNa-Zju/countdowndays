@@ -12,6 +12,8 @@ pub enum AppError {
     #[error("系统 IO 错误: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("Migration error: {0}")]
+    Migrate(#[from] sqlx::migrate::MigrateError),
     // 预留给未来的业务逻辑报错，比如“日程不存在”、“参数校验失败”
     #[error("业务逻辑异常: {0}")]
     Business(String),

@@ -4,13 +4,12 @@
 mod commands;
 mod db;
 mod errors;
-mod modals;
+mod models;
 mod repositories;
 
 use tauri::Manager;
 
-#[tokio::main]
-async fn main() {
+fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -25,16 +24,14 @@ async fn main() {
         })
         // 注册所有供前端调用的 API
         .invoke_handler(tauri::generate_handler![
-            commands::create_event,
-            commands::get_all_events,
-            commands::get_event_by_id,
-            commands::update_event,
-            commands::delete_event,
-            commands::search_events,
-            commands::get_all_categories,
-            commands::create_category,
-            commands::delete_category,
-        ])
+    commands::get_all_events,
+    commands::create_event,
+    commands::update_event,
+    commands::delete_event,
+    commands::get_all_categories,
+    commands::create_category,
+    commands::delete_category
+])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

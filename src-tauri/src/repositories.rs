@@ -1,4 +1,4 @@
-use crate::errors::{AppError, AppResult};
+use crate::errors::AppResult;
 use crate::models::{Category, CreateEventDto, Event, UpdateEventDto};
 use serde_json;
 use sqlx::{Row, SqlitePool};
@@ -31,12 +31,12 @@ impl EventRepository {
         Ok(rec.id)
     }
 
-    // 创建日程 (带有事务)
+    // 🌟 创建日程 (修复：补上 event_type)
     pub async fn create(pool: &SqlitePool, payload: CreateEventDto) -> AppResult<i64> {
         let mut tx = pool.begin().await?;
         let event_id = sqlx::query!(
-            "INSERT INTO events (title, description, target_date, importance, meta) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
-            payload.title, payload.description, payload.target_date, payload.importance, payload.meta
+            "INSERT INTO events (title, description, target_date, importance, event_type, meta) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id",
+            payload.title, payload.description, payload.target_date, payload.importance, payload.event_type, payload.meta
         ).fetch_one(&mut *tx).await?.id;
 
         // 插入多对多关系
@@ -53,12 +53,12 @@ impl EventRepository {
         Ok(event_id)
     }
 
-    // 获取所有日程 (完美映射 M2M)
+    // 🌟 获取所有日程 (完美映射 M2M，修复：补上 event_type 读取)
     pub async fn get_all(pool: &SqlitePool) -> AppResult<Vec<Event>> {
         // 利用 SQLite 的 json_group_array 聚合分类
         let rows = sqlx::query(
             r#"
-            SELECT e.*, 
+            SELECT e.*,
                    COALESCE((
                        SELECT json_group_array(json_object('id', c.id, 'name', c.name))
                        FROM categories c
@@ -82,11 +82,50 @@ impl EventRepository {
                 description: row.try_get("description")?,
                 target_date: row.try_get("target_date")?,
                 importance: row.try_get("importance")?,
+                event_type: row.try_get("event_type")?, // 🌟 补上这行，修复实例化错误
                 meta: row.try_get("meta")?,
                 categories: serde_json::from_str(&cat_json).unwrap_or_default(),
             });
         }
         Ok(events)
+    }
+
+    // 🌟 更新日程 (修复：之前你把这个方法完全漏掉了！)
+    pub async fn update(pool: &SqlitePool, dto: UpdateEventDto) -> AppResult<u64> {
+        let mut tx = pool.begin().await?;
+
+        // 先查出旧数据，方便做增量更新
+        let old = sqlx::query!(
+            "SELECT title, description, target_date, importance, event_type, meta FROM events WHERE id = ?1",
+            dto.id
+        ).fetch_one(&mut *tx).await?;
+
+        let title = dto.title.unwrap_or(old.title);
+        let desc = dto.description.unwrap_or(old.description);
+        let t_date = dto.target_date.unwrap_or(old.target_date);
+        let imp = dto.importance.unwrap_or(old.importance);
+        let e_type = dto.event_type.unwrap_or(old.event_type);
+        let meta = dto.meta.unwrap_or(old.meta);
+
+        // 更新主表
+        sqlx::query!(
+            "UPDATE events SET title=?1, description=?2, target_date=?3, importance=?4, event_type=?5, meta=?6 WHERE id=?7",
+            title, desc, t_date, imp, e_type, meta, dto.id
+        ).execute(&mut *tx).await?;
+
+        // 重新绑定多对多标签关系
+        if let Some(cat_ids) = dto.category_ids {
+            sqlx::query!("DELETE FROM event_categories WHERE event_id = ?1", dto.id)
+                .execute(&mut *tx).await?;
+
+            for cid in cat_ids {
+                sqlx::query!("INSERT INTO event_categories (event_id, category_id) VALUES (?1, ?2)", dto.id, cid)
+                    .execute(&mut *tx).await?;
+            }
+        }
+
+        tx.commit().await?;
+        Ok(1)
     }
 
     // 删除日程 (一并清理多对多关系)
@@ -102,15 +141,15 @@ impl EventRepository {
         tx.commit().await?;
         Ok(rows)
     }
-    // 在 impl EventRepository 中添加
+
+    // 删除分类 (并维护引用完整性)
     pub async fn delete_category(pool: &SqlitePool, id: i64) -> AppResult<u64> {
         let mut tx = pool.begin().await?;
-        // 1. 首先删除所有日程与该分类的关联关系（维护引用完整性）
+
         sqlx::query!("DELETE FROM event_categories WHERE category_id = ?1", id)
             .execute(&mut *tx)
             .await?;
 
-        // 2. 删除分类本身
         let rows = sqlx::query!("DELETE FROM categories WHERE id = ?1", id)
             .execute(&mut *tx)
             .await?
