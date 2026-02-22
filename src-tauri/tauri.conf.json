@@ -18,8 +18,7 @@
         "title": "Momentary",
         "width": 1440,
         "decorations": false,
-        "alwaysOnTop": false,
-        "skipTaskbar": true
+        "alwaysOnTop": false
       }
     ],
     "security": {

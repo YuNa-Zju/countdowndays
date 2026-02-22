@@ -7,7 +7,8 @@ import { sortEventsOptimally } from "../utils/dateUtils";
 
 export default function EventList() {
   const { events } = useEventStore();
-  const { viewMode, toggleViewMode } = useUiBus();
+  // 🌟 1. 从 Store 中引入我们新增的分组状态和切换方法
+  const { viewMode, toggleViewMode, expandedGroups, toggleGroup } = useUiBus();
 
   const sortedEvents = sortEventsOptimally(events);
 
@@ -76,63 +77,73 @@ export default function EventList() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            {Object.entries(groupedEvents).map(([categoryName, catEvents]) => (
-              <div
-                key={categoryName}
-                /* 坐标1：外层容器同步 */
-                className={`group collapse collapse-arrow w-full overflow-hidden
+            {Object.entries(groupedEvents).map(([categoryName, catEvents]) => {
+              // 🌟 2. 判断该组是否展开：如果没有记录过（undefined），就默认给它 true（展开）
+              const isExpanded = expandedGroups[categoryName] !== false;
+
+              return (
+                <div
+                  key={categoryName}
+                  /* 坐标1：外层容器同步 */
+                  className={`group collapse collapse-arrow w-full overflow-hidden
                   bg-primary/15 rounded-[2.5rem] border border-transparent
                   has-[:checked]:bg-base-100 has-[:checked]:border-base-200/60 has-[:checked]:shadow-sm
                   ${appleSmoothTransition}`}
-              >
-                <input type="checkbox" defaultChecked />
-
-                {/* 坐标2：标题盒子同步（这一步修复了右侧箭头的旋转动画跳变） */}
-                <div
-                  className={`collapse-title relative min-h-[4.5rem] ${appleSmoothTransition}`}
                 >
+                  {/* 🌟 3. 将不受控的 defaultChecked 改为受控的 checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isExpanded}
+                    onChange={() => toggleGroup(categoryName)}
+                  />
+
+                  {/* 坐标2：标题盒子同步（这一步修复了右侧箭头的旋转动画跳变） */}
                   <div
-                    className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-3 w-max
-                    left-1/2 -translate-x-1/2 scale-105
-                    group-has-[:checked]:left-6 group-has-[:checked]:translate-x-0 group-has-[:checked]:scale-100
-                    ${appleSmoothTransition}`}
+                    className={`collapse-title relative min-h-[4.5rem] ${appleSmoothTransition}`}
                   >
-                    <span
-                      className={`font-black tracking-widest text-primary
-                      group-has-[:checked]:bg-primary/10 group-has-[:checked]:px-5 group-has-[:checked]:py-1.5 group-has-[:checked]:rounded-full
+                    <div
+                      className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-3 w-max
+                      left-1/2 -translate-x-1/2 scale-105
+                      group-has-[:checked]:left-6 group-has-[:checked]:translate-x-0 group-has-[:checked]:scale-100
                       ${appleSmoothTransition}`}
                     >
-                      {categoryName}
-                    </span>
+                      <span
+                        className={`font-black tracking-widest text-primary
+                        group-has-[:checked]:bg-primary/10 group-has-[:checked]:px-5 group-has-[:checked]:py-1.5 group-has-[:checked]:rounded-full
+                        ${appleSmoothTransition}`}
+                      >
+                        {categoryName}
+                      </span>
 
-                    <span
-                      className={`font-medium whitespace-nowrap
-                      text-primary/60 text-sm
-                      group-has-[:checked]:text-base-content/40 group-has-[:checked]:text-xs
+                      <span
+                        className={`font-medium whitespace-nowrap
+                        text-primary/60 text-sm
+                        group-has-[:checked]:text-base-content/40 group-has-[:checked]:text-xs
+                        ${appleSmoothTransition}`}
+                      >
+                        共 {catEvents.length} 个日子
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 坐标3：内容高度同步（这一步彻底修复了高度突然塌陷成胶囊的 Bug！） */}
+                  <div className={`collapse-content ${appleSmoothTransition}`}>
+                    <div
+                      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 pb-2 border-t border-transparent
+                      group-has-[:checked]:border-base-200/50
                       ${appleSmoothTransition}`}
                     >
-                      共 {catEvents.length} 个日子
-                    </span>
+                      {catEvents.map((event) => (
+                        <EventCard
+                          key={`${categoryName}-${event.id}`}
+                          event={event}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
-
-                {/* 坐标3：内容高度同步（这一步彻底修复了高度突然塌陷成胶囊的 Bug！） */}
-                <div className={`collapse-content ${appleSmoothTransition}`}>
-                  <div
-                    className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 pb-2 border-t border-transparent
-                    group-has-[:checked]:border-base-200/50
-                    ${appleSmoothTransition}`}
-                  >
-                    {catEvents.map((event) => (
-                      <EventCard
-                        key={`${categoryName}-${event.id}`}
-                        event={event}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

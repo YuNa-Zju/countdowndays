@@ -115,11 +115,17 @@ impl EventRepository {
         // 重新绑定多对多标签关系
         if let Some(cat_ids) = dto.category_ids {
             sqlx::query!("DELETE FROM event_categories WHERE event_id = ?1", dto.id)
-                .execute(&mut *tx).await?;
+                .execute(&mut *tx)
+                .await?;
 
             for cid in cat_ids {
-                sqlx::query!("INSERT INTO event_categories (event_id, category_id) VALUES (?1, ?2)", dto.id, cid)
-                    .execute(&mut *tx).await?;
+                sqlx::query!(
+                    "INSERT INTO event_categories (event_id, category_id) VALUES (?1, ?2)",
+                    dto.id,
+                    cid
+                )
+                .execute(&mut *tx)
+                .await?;
             }
         }
 

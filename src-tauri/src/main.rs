@@ -5,20 +5,22 @@ mod db;
 mod errors;
 mod models;
 mod repositories;
+mod notification;
 
 use tauri::Manager;
 // 🌟 引入 Tauri v2 托盘所需的组件
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    image::Image,
 };
+use notification::schedule_daily_notification;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
-
             // ==========================================
             // 🌟 1. 注册系统托盘 (System Tray)
             // ==========================================
@@ -70,6 +72,10 @@ fn main() {
             tauri::async_runtime::block_on(async move {
                 let pool = db::init_db(&app_handle).await.expect("数据库初始化失败");
                 app_handle.manage(pool);
+                let bg_app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    schedule_daily_notification(bg_app_handle).await;
+                });
             });
 
             Ok(())

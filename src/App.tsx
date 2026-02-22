@@ -16,6 +16,38 @@ function App() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    // 拦截键盘快捷键
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 禁用 F5，以及 Ctrl+R (Windows) / Cmd+R (Mac)
+      if (
+        e.key === "F5" ||
+        (e.ctrlKey && e.key.toLowerCase() === "r") ||
+        (e.metaKey && e.key.toLowerCase() === "r")
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    // 拦截原生右键菜单（防止用户通过右键点击“重新加载”）
+    // 注意：如果你自己实现了右键菜单（比如之前代码里的 openContextMenu），你需要确保那个事件加了 e.stopPropagation()
+    const handleContextMenu = (e: MouseEvent) => {
+      // 只有在你需要自定义全屏右键拦截时使用，否则会阻挡你本身的右键逻辑
+      if (import.meta.env.PROD) {
+        // 建议只在生产环境禁用
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("contextmenu", handleContextMenu);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-base-200 font-sans transition-colors duration-300">
       <Header />

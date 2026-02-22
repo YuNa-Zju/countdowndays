@@ -29,4 +29,5 @@ anyhow = "1.0.102"
 thiserror = "2.0.18"
 regex = "1.12.3"
 dotenv = "0.15.0"
+tauri-plugin-notification = "2"
 

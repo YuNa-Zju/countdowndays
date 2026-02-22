@@ -1,8 +1,8 @@
-use tauri::State;
-use sqlx::SqlitePool;
-use crate::errors::{AppResult, AppError};
-use crate::models::{Event, Category, CreateEventDto, UpdateEventDto};
+use crate::errors::{AppError, AppResult};
+use crate::models::{Category, CreateEventDto, Event, UpdateEventDto};
 use crate::repositories::EventRepository;
+use sqlx::SqlitePool;
+use tauri::State;
 
 #[tauri::command]
 pub async fn get_all_events(pool: State<'_, SqlitePool>) -> AppResult<Vec<Event>> {
@@ -11,7 +11,6 @@ pub async fn get_all_events(pool: State<'_, SqlitePool>) -> AppResult<Vec<Event>
 
 #[tauri::command]
 pub async fn create_event(payload_str: String, pool: State<'_, SqlitePool>) -> AppResult<i64> {
-
     println!("API: create_event with payload: {}", payload_str);
     let payload: CreateEventDto = serde_json::from_str(&payload_str)
         .map_err(|e| AppError::Business(format!("创建参数解析失败: {}", e)))?;
