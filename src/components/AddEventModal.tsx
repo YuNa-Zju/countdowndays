@@ -276,7 +276,7 @@ export default function AddEventModal() {
       title: "",
       description: "",
       target_date: format(new Date(), "yyyy-MM-dd"),
-      importance: 0, // 🌟 初始化修改为 0
+      importance: 5, // 🌟 初始化修改为 0
       category_ids: [],
       event_type: "task",
     };

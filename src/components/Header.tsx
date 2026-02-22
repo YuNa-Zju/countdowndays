@@ -13,7 +13,7 @@ export default function Header() {
     // 🌟 外层容器：data-tauri-drag-region 允许按住拖拽窗口
     <div
       data-tauri-drag-region
-      className="bg-base-100 shadow-sm sticky top-0 z-50 flex flex-col select-none"
+      className="bg-base-100 shadow-sm sticky top-0 z-50 flex flex-col select-none rounded-t-4xl"
     >
       {/* 🌟 桌面端专属：自定义标题栏控制按钮 */}
       {isDesktop && (

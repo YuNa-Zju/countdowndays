@@ -5,21 +5,54 @@ import EventList from "./components/EventList";
 import FloatingButton from "./components/FloatingButton";
 import GlobalModals from "./components/GlobalModals";
 import { useEventStore } from "./store/eventStore";
+import FabWidget from "./components/FabWidget";
+// 🌟 确保引入了 Window，用于跨窗口唤醒
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
+import { useUiBus } from "./store/uiBus";
 import "./App.css";
 
 function App() {
-  // 1. 从 Store 中拿出 fetchData 方法
+  const windowLabel = getCurrentWindow().label;
+  // 🌟 从 Zustand 提取 theme，给主界面和悬浮窗同时使用
+  const { openCreateModal, theme } = useUiBus();
   const { fetchData } = useEventStore();
 
-  // 2. 🌟 核心初始化：组件挂载时，主动去拿一次数据
+  // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗，并强行注入主题数据和透明背景
+  // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗
+  if (windowLabel === "fab") {
+    return (
+      // 外壳透明+p-2，以便让里面的圆角卡片阴影显示出来
+      <div
+        data-theme={theme}
+        className="w-screen h-screen bg-transparent overflow-hidden text-base-content rounded-2xl"
+      >
+        <FabWidget />
+      </div>
+    );
+  }
+
+  // 👇 下面全都是主窗口 (main) 的逻辑
+
+  useEffect(() => {
+    // 监听悬浮窗发来的新建事件
+    const unlisten = listen("wake-main-and-create", async () => {
+      openCreateModal(); // 调起 Zustand 里的弹窗
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [openCreateModal]);
+
+  // 🌟 核心初始化：组件挂载时，主动去拿一次数据
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // 🌟 禁用 F5 与右键刷新逻辑
   useEffect(() => {
-    // 拦截键盘快捷键
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 禁用 F5，以及 Ctrl+R (Windows) / Cmd+R (Mac)
       if (
         e.key === "F5" ||
         (e.ctrlKey && e.key.toLowerCase() === "r") ||
@@ -29,12 +62,8 @@ function App() {
       }
     };
 
-    // 拦截原生右键菜单（防止用户通过右键点击“重新加载”）
-    // 注意：如果你自己实现了右键菜单（比如之前代码里的 openContextMenu），你需要确保那个事件加了 e.stopPropagation()
     const handleContextMenu = (e: MouseEvent) => {
-      // 只有在你需要自定义全屏右键拦截时使用，否则会阻挡你本身的右键逻辑
       if (import.meta.env.PROD) {
-        // 建议只在生产环境禁用
         e.preventDefault();
       }
     };
@@ -49,7 +78,11 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-base-200 font-sans transition-colors duration-300">
+    // 🌟 3. 修复了 data-theme={theme} 的写法，它不能写进字符串 className 里
+    <div
+      data-theme={theme}
+      className="min-h-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl"
+    >
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-6">
         <EventList />

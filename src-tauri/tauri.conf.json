@@ -18,7 +18,22 @@
         "title": "Momentary",
         "width": 1440,
         "decorations": false,
-        "alwaysOnTop": false
+        "transparent": true,
+        "alwaysOnTop": false,
+        "shadow": false
+      },
+      {
+        "label": "fab",
+        "title": "FabWidget",
+        "width": 10,
+        "height": 10,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "shadow": false
       }
     ],
     "security": {

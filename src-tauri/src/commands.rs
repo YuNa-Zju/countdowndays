@@ -2,7 +2,7 @@ use crate::errors::{AppError, AppResult};
 use crate::models::{Category, CreateEventDto, Event, UpdateEventDto};
 use crate::repositories::EventRepository;
 use sqlx::SqlitePool;
-use tauri::State;
+use tauri::{State, Manager, Emitter};
 
 #[tauri::command]
 pub async fn get_all_events(pool: State<'_, SqlitePool>) -> AppResult<Vec<Event>> {
@@ -42,4 +42,18 @@ pub async fn create_category(name: String, pool: State<'_, SqlitePool>) -> AppRe
 #[tauri::command]
 pub async fn delete_category(id: i64, pool: State<'_, SqlitePool>) -> AppResult<u64> {
     EventRepository::delete_category(&*pool, id).await
+}
+
+#[tauri::command]
+pub fn wake_main_window(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = window.emit("wake-main-and-create", ());
+    }
+    // 可选：唤醒主界面的同时，把悬浮窗藏起来，体验更好
+    if let Some(fab) = app.get_webview_window("fab") {
+        let _ = fab.hide();
+    }
 }
