@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-type Theme = "nord" | "dracula" | "system";
+export type Theme =
+  | "nord"
+  | "dracula"
+  | "system"
+  | "pastel-light"
+  | "pastel-dark";
 type ViewMode = "flat" | "grouped";
 
 interface ContextMenuState {
@@ -13,6 +18,7 @@ interface ContextMenuState {
 interface UiState {
   isCmdkOpen: boolean; // 🌟 控制 Cmdk 唤起
   isCreateModalOpen: boolean;
+  isNoteModalOpen: boolean;
   editingEventId: number | null;
   theme: Theme;
   isDeleteModalOpen: boolean;
@@ -33,6 +39,9 @@ interface UiState {
   toggleViewMode: () => void;
   openContextMenu: (x: number, y: number, eventId: number) => void;
   closeContextMenu: () => void;
+  noteModalContent: { title: string; description: string } | null;
+  openNoteModal: (title: string, description: string) => void;
+  closeNoteModal: () => void;
 }
 
 export const useUiBus = create<UiState>((set) => ({
@@ -44,6 +53,7 @@ export const useUiBus = create<UiState>((set) => ({
   eventToDelete: null,
   viewMode: "flat",
   contextMenu: { isOpen: false, x: 0, y: 0, eventId: null },
+  isNoteModalOpen: false,
 
   openCmdk: () => set({ isCmdkOpen: true }),
   closeCmdk: () => set({ isCmdkOpen: false }),
@@ -66,4 +76,8 @@ export const useUiBus = create<UiState>((set) => ({
     set({ contextMenu: { isOpen: true, x, y, eventId } }),
   closeContextMenu: () =>
     set((state) => ({ contextMenu: { ...state.contextMenu, isOpen: false } })),
+  noteModalContent: null,
+  openNoteModal: (title, description) =>
+    set({ isNoteModalOpen: true, noteModalContent: { title, description } }),
+  closeNoteModal: () => set({ isNoteModalOpen: false, noteModalContent: null }),
 }));

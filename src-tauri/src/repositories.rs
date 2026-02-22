@@ -99,10 +99,9 @@ impl EventRepository {
             "SELECT title, description, target_date, importance, event_type, meta FROM events WHERE id = ?1",
             dto.id
         ).fetch_one(&mut *tx).await?;
-
         let title = dto.title.unwrap_or(old.title);
         let desc = dto.description.unwrap_or(old.description);
-        let t_date = dto.target_date.unwrap_or(old.target_date);
+        let t_date = dto.target_date.unwrap_or(old.target_date.and_utc());
         let imp = dto.importance.unwrap_or(old.importance);
         let e_type = dto.event_type.unwrap_or(old.event_type);
         let meta = dto.meta.unwrap_or(old.meta);

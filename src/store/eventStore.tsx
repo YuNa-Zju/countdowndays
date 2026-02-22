@@ -132,7 +132,7 @@ export const useEventStore = create<EventState>((set, get) => ({
           categories: event.categories.filter((cat) => cat.id !== id),
         })),
       }));
-      toast.success("标签已彻底删除");
+      toast.success("标签已删除");
     } catch (error) {
       toast.error("标签删除失败");
     }

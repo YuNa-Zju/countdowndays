@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, X, Trash2 } from "lucide-react";
 import AddEventModal from "./AddEventModal";
 import CommandPalette from "./CommandPalette"; // 🌟 引入
 import { AnimatePresence, motion } from "framer-motion";
+import renderDescription from "../utils/textUtils";
 
 export default function GlobalModals() {
   const {
@@ -15,6 +16,9 @@ export default function GlobalModals() {
     closeContextMenu,
     openEditModal,
     openDeleteModal,
+    isNoteModalOpen,
+    noteModalContent,
+    closeNoteModal,
   } = useUiBus();
   const { deleteEventOptimistic } = useEventStore();
 
@@ -90,6 +94,30 @@ export default function GlobalModals() {
       </dialog>
       <AddEventModal />
       <CommandPalette /> {/* 🌟 挂载全局 Cmdk */}
+      {isNoteModalOpen && noteModalContent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-base-300/40 backdrop-blur-sm"
+            onClick={closeNoteModal}
+          ></div>
+          <div className="bg-base-100 rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col relative z-10 border border-base-200">
+            <div className="p-6 pb-4 flex justify-between items-center border-b border-base-200/50">
+              <h3 className="text-xl font-bold text-base-content line-clamp-1 pr-4">
+                {noteModalContent.title}
+              </h3>
+              <button
+                onClick={closeNoteModal}
+                className="btn btn-sm btn-circle btn-ghost"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-lg leading-relaxed text-base-content/80 whitespace-pre-wrap">
+              {renderDescription(noteModalContent.description)}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

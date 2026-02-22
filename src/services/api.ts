@@ -75,7 +75,10 @@ const api = {
       saveMockData(); // 🌟 保存
       return newId;
     }
-    return await invoke<number>("create_event", { payload: dto });
+    console.log("API: createEvent", dto);
+    return await invoke<number>("create_event", {
+      payloadStr: JSON.stringify(dto),
+    });
   },
 
   async updateEvent(dto: UpdateEventDto): Promise<void> {
@@ -95,7 +98,7 @@ const api = {
       saveMockData(); // 🌟 保存
       return;
     }
-    return await invoke("update_event", { payload: dto });
+    return await invoke("update_event", { payloadStr: JSON.stringify(dto) });
   },
 
   async deleteEvent(id: number): Promise<void> {

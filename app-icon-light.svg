@@ -1,0 +1,36 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="32" y="32" width="448" height="448" rx="128" fill="url(#bg_light)"/>
+
+    <circle cx="256" cy="256" r="190" stroke="#C7D2FE" stroke-opacity="0.3" stroke-width="8"/>
+    <circle cx="256" cy="256" r="150" stroke="#A5B4FC" stroke-opacity="0.5" stroke-width="24"/>
+
+    <circle cx="256" cy="256" r="110" stroke="url(#accent_indigo)" stroke-width="32" stroke-linecap="round" stroke-dasharray="500" stroke-dashoffset="100" transform="rotate(-45 256 256)"/>
+
+    <g filter="url(#inset_shadow_indigo)" transform="translate(256, 256) scale(0.35) translate(-256, -280.5)">
+        <path d="M256 120 L305 226 L421 243 L337 325 L357 441 L256 388 L155 441 L175 325 L91 243 L207 226 Z"
+              fill="#818CF8" stroke="#818CF8" stroke-width="60" stroke-linejoin="round"/>
+    </g>
+
+    <defs>
+        <linearGradient id="bg_light" x1="32" y1="32" x2="480" y2="480" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#F3F4F6"/>
+            <stop offset="1" stop-color="#E0E7FF"/>
+        </linearGradient>
+        <linearGradient id="accent_indigo" x1="146" y1="146" x2="366" y2="366" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#A5B4FC"/>
+            <stop offset="1" stop-color="#6366F1"/>
+        </linearGradient>
+
+        <filter id="inset_shadow_indigo" x="-50%" y="-50%" width="200%" height="200%">
+            <feOffset dx="4" dy="6" in="SourceAlpha" result="offset"/>
+            <feGaussianBlur stdDeviation="8" in="offset" result="blurred"/>
+            <feComposite operator="xor" in="SourceAlpha" in2="blurred" result="shadowShape"/>
+            <feFlood flood-color="#312E81" flood-opacity="0.5" result="shadowColor"/>
+            <feComposite operator="in" in="shadowColor" in2="shadowShape" result="finalShadow"/>
+            <feMerge>
+                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="finalShadow"/>
+            </feMerge>
+        </filter>
+    </defs>
+</svg>

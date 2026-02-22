@@ -1,43 +1,201 @@
 @import "tailwindcss";
+
+@import "tailwindcss";
+
 @plugin "daisyui" {
-  themes: nord, dracula;
+  themes: pastel-light, pastel-dark;
 }
 
-/* 隐藏滚动条，保持页面整洁 */
+/* 🌞 亮色淡彩主题 */
+@plugin "daisyui/theme" {
+  name: "pastel-light";
+  color-scheme: "light";
+
+  /* 🌟 恢复胶囊圆角和卡片圆角 */
+  --radius-selector: *;
+  --rounded-box: 1.5rem; /* 卡片大圆角 */
+  --rounded-btn: 1.9rem; /* 按钮胶囊圆角 */
+  --rounded-badge: 1.9rem; /* 徽章胶囊圆角 */
+
+  --color-primary: #818cf8;
+  --color-secondary: #7dd3fc;
+  --color-accent: #fcd34d;
+  --color-neutral: #475569;
+
+  --color-base-100: #f8fafc;
+  --color-base-200: #f1f5f9;
+  --color-base-300: #e2e8f0;
+  --color-base-content: #334155;
+
+  --color-info: #bae6fd;
+  --color-success: #a7f3d0;
+  --color-warning: #fde047;
+  --color-error: #ef4444;
+}
+
+/* 🌙 暗色岩青主题 */
+@plugin "daisyui/theme" {
+  name: "pastel-dark";
+  color-scheme: "dark";
+
+  /* 🌟 同样需要配置圆角变量 */
+  --radius-selector: *;
+  --rounded-box: 1.5rem;
+  --rounded-btn: 1.9rem;
+  --rounded-badge: 1.9rem;
+
+  --color-primary: #6366f1;
+  --color-secondary: #38bdf8;
+  --color-accent: #fbbf24;
+  --color-neutral: #cbd5e1;
+
+  --color-base-100: #1e293b;
+  --color-base-200: #0f172a;
+  --color-base-300: #020617;
+  --color-base-content: #f8fafc;
+
+  --color-info: #0ea5e9;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+/* =========================================
+   1. 彻底抹杀滚动条 (兼容所有现代浏览器)
+   ========================================= */
+* {
+  scrollbar-width: none; /* Firefox */
+}
 ::-webkit-scrollbar {
-  width: 0px;
+  display: none; /* Chrome, Safari, Edge */
+  width: 0;
+  height: 0;
   background: transparent;
 }
 
-/* cmdk 样式补充 */
+/* =========================================
+   2. CmdK 旗舰级卡片风定制
+   ========================================= */
+
+/* 遮罩层：高级毛玻璃效果 */
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2); /* 降低纯黑透明度，让底色透出来 */
+  backdrop-filter: blur(12px); /* 加大模糊度，景深感拉满 */
+  z-index: 99;
+  animation: overlayFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 弹窗主体：大圆角，悬浮阴影 */
 [cmdk-dialog] {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 100%;
-  max-width: 600px;
+  width: 90%;
+  max-width: 640px; /* 稍微加宽，更显大气 */
+  background: var(--color-base-100);
+  border-radius: 2rem; /* 匹配我们外层胶囊的超大圆角 */
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px var(--color-base-200);
   z-index: 100;
+  overflow: hidden; /* 保证边角裁切完美 */
+  display: flex;
+  flex-direction: column;
+  animation: dialogScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-[cmdk-overlay] {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 99;
-}
-
-[cmdk-group-heading] {
-  padding: 8px 16px;
-  font-size: 12px;
+/* 搜索输入框：高挑，留白，无边界感 */
+[cmdk-input] {
+  width: 100%;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: var(--fallback-bc, oklch(var(--bc) / 0.5));
+  /* 修复：原本是 28px 32px，现在将左边距(第四个值)改为 80px */
+  /* 顺序为：上 右 下 左 */
+  padding: 28px 32px 28px 80px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-base-content);
+  border-bottom: 1px solid var(--color-base-200);
+}
+[cmdk-input]::placeholder {
+  color: var(--color-base-content);
+  opacity: 0.3;
 }
 
+/* 列表容器：内部留白与限高 */
+[cmdk-list] {
+  max-height: 450px;
+  overflow-y: auto;
+  padding: 16px; /* 内部给项目留出空间 */
+  overscroll-behavior: contain;
+}
+
+/* 分组标题：精致的马卡龙小字号 */
+[cmdk-group-heading] {
+  padding: 12px 16px 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  opacity: 0.6;
+}
+
+/* 列表项目：默认状态圆润紧凑 */
+[cmdk-item] {
+  content-visibility: auto;
+  cursor: pointer;
+  min-height: 56px; /* 加高每个选项，避免拥挤 */
+  border-radius: 1rem; /* 选项也是大圆角 */
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  color: var(--color-base-content);
+  user-select: none;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+/* 🌟 核心：选中/激活时的淡彩高光效果 */
+[cmdk-item][aria-selected="true"] {
+  /* 使用 CSS 颜色混合魔法，提取主题的主色并设为 15% 透明度 */
+  background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+  font-weight: 700;
+  transform: scale(0.99); /* 按压微缩效果 */
+}
+
+/* 空状态：温柔的提示 */
 [cmdk-empty] {
-  padding: 32px;
+  padding: 64px 32px;
   text-align: center;
-  font-size: 14px;
-  color: var(--fallback-bc, oklch(var(--bc) / 0.5));
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-base-content);
+  opacity: 0.4;
+}
+
+/* 苹果风缓入动画 */
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialogScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }

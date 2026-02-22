@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
-import { useUiBus } from "../store/uiBus";
+import { useUiBus, type Theme } from "../store/uiBus";
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useUiBus();
   const [isDark, setIsDark] = useState(false);
+  const themes: Theme[] = ["pastel-light", "pastel-dark"];
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -12,11 +13,11 @@ export default function ThemeToggle() {
       const isSystemDark = mediaQuery.matches;
       // 暗黑模式使用 dim，亮色模式使用 nord
       const shouldUseDark =
-        theme === "dracula" || (theme === "system" && isSystemDark);
+        theme === themes[1] || (theme === "system" && isSystemDark);
       setIsDark(shouldUseDark);
       document.documentElement.setAttribute(
         "data-theme",
-        shouldUseDark ? "dracula" : "nord",
+        shouldUseDark ? themes[1] : themes[0],
       );
     };
     applyTheme();
@@ -24,7 +25,7 @@ export default function ThemeToggle() {
     return () => mediaQuery.removeEventListener("change", applyTheme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(isDark ? "nord" : "dracula");
+  const toggleTheme = () => setTheme(isDark ? themes[0] : themes[1]);
 
   return (
     <label className="swap swap-rotate btn btn-ghost btn-circle">

@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   MoreHorizontal,
   CalendarHeart,
   History,
-  ExternalLink,
+  AlignLeft,
 } from "lucide-react";
 import {
   isBefore,
@@ -18,53 +18,16 @@ import {
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { AppEvent } from "../types";
-
-// 🌟 链接解析：保持点击在新窗口打开
-const renderDescription = (text: string) => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary underline inline-flex items-center gap-0.5 hover:opacity-80"
-          onClick={(e) => e.stopPropagation()}
-        >
-          链接 <ExternalLink className="w-3 h-3" />
-        </a>
-      );
-    }
-    return part;
-  });
-};
+// 复用刚才写好的解析器
+import renderDescription from "../utils/textUtils";
 
 interface EventCardProps {
   event: AppEvent;
 }
 
 export default function EventCard({ event }: EventCardProps) {
-  const { openContextMenu } = useUiBus();
+  const { openContextMenu, openNoteModal } = useUiBus();
   const { deleteEventOptimistic } = useEventStore();
-
-  // 🌟 悬浮窗状态逻辑：支持鼠标移入弹窗不消失
-  const [showTooltip, setShowTooltip] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setShowTooltip(true);
-  };
-
-  const handleMouseLeave = () => {
-    // 给一点延迟，方便用户将鼠标从文字移到弹窗上
-    timeoutRef.current = window.setTimeout(() => {
-      setShowTooltip(false);
-    }, 200);
-  };
 
   const today = startOfDay(new Date());
   const originalTarget = startOfDay(new Date(event.target_date));
@@ -101,114 +64,104 @@ export default function EventCard({ event }: EventCardProps) {
     }
   }
 
-  // 🌟 原本顶部的颜色现在被提取出来准备注入给进度条
   const importanceColor = `hsl(348, ${50 + event.importance / 2}%, ${65 - event.importance / 3}%)`;
 
   return (
     <motion.div
       layout="position"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      /* 🌟 颜色方案：任务用 Warning 背景，纪念日用 Info 背景，在 Nord 下非常清晰 */
-      className={`card shadow-sm border border-base-200 overflow-visible relative group h-full flex flex-col transition-all duration-300
+      className={`card shadow-sm border border-base-200 overflow-visible relative group h-full flex flex-col transition-all duration-300 rounded-3xl
         ${isAnniversary ? "bg-info/10 hover:bg-info/15" : "bg-warning/10 hover:bg-warning/15"}`}
     >
-      <div className="card-body p-6 flex flex-col flex-1">
-        {/* 顶部：类型胶囊与操作 */}
-        <div className="flex justify-between items-start mb-4">
-          <span
-            className={`badge badge-lg rounded-full font-black border-none text-[10px] tracking-widest uppercase py-3 px-4
-            ${isAnniversary ? "bg-info text-info-content" : "bg-warning text-warning-content"}`}
-          >
-            {isAnniversary ? "Anniversary" : "Task"}
-          </span>
+      <div className="card-body p-5 flex flex-col flex-1">
+        {/* 🌟 顶部：类型胶囊、自定义标签与操作 */}
+        <div className="flex justify-between items-start mb-4 gap-2">
+          <div className="flex flex-wrap gap-2 flex-1 items-center">
+            {/* 主类型标签 */}
+            <span
+              className={`badge badge-md rounded-full font-black border-none text-[10px] tracking-widest uppercase py-2.5 px-3 shadow-sm
+              ${isAnniversary ? "bg-info text-info-content" : "bg-warning text-warning-content"}`}
+            >
+              {isAnniversary ? "Anniversary" : "Task"}
+            </span>
+
+            {/* 🌟 自定义分类标签 (移到了这里并加强了样式) */}
+            {event.categories.map((c) => (
+              <span
+                key={c.id}
+                className="px-3 py-1 rounded-full bg-base-content/10 border border-base-content/10 text-[11px] font-bold text-base-content/80 uppercase tracking-tighter shadow-sm backdrop-blur-sm"
+              >
+                {c.name}
+              </span>
+            ))}
+          </div>
+
+          {/* 菜单按钮 */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               openContextMenu(e.clientX - 100, e.clientY + 20, event.id);
             }}
-            className="btn btn-sm btn-circle btn-ghost -mr-3 opacity-30 group-hover:opacity-100 transition-opacity"
+            className="btn btn-sm btn-circle btn-ghost -mr-2 -mt-1 opacity-30 group-hover:opacity-100 transition-opacity shrink-0"
           >
             <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
 
-        <h2 className="card-title text-2xl font-black text-base-content tracking-tight line-clamp-1 mb-1">
+        <h2 className="card-title text-3xl font-black text-base-content tracking-tight line-clamp-1 mb-2">
           {event.title}
         </h2>
 
-        {/* 备注 & 交互式悬浮窗 */}
-        <div
-          className="relative"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          <p className="text-base text-base-content/60 line-clamp-2 cursor-help">
-            {renderDescription(event.description)}
-          </p>
-          <AnimatePresence>
-            {showTooltip && event.description.length > 20 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                className="absolute z-[60] top-full left-0 mt-2 p-5 bg-base-100 border border-base-300 shadow-2xl rounded-2xl w-72 text-sm leading-relaxed text-base-content"
+        {event.description && (
+          <div className="mb-2">
+            <p className="text-base text-base-content/60 line-clamp-2 leading-relaxed">
+              {renderDescription(event.description)}
+            </p>
+            {event.description.length > 25 && (
+              <button
+                onClick={() => openNoteModal(event.title, event.description)}
+                className="mt-1 flex items-center gap-1.5 text-sm font-bold text-primary hover:opacity-70 transition-opacity"
               >
-                <div className="font-bold text-xs uppercase opacity-40 mb-2 tracking-widest">
-                  备注详情
-                </div>
-                {renderDescription(event.description)}
-              </motion.div>
+                <AlignLeft className="w-4 h-4" /> 查看完整备注
+              </button>
             )}
-          </AnimatePresence>
-        </div>
-
-        {isAnniversary && (
-          <div className="mt-4 space-y-1 text-xs font-bold text-base-content/50 bg-base-100/40 p-3 rounded-2xl border border-base-content/5">
-            <div className="flex items-center gap-2">
-              <CalendarHeart className="w-3.5 h-3.5" />
-              {format(originalTarget, "yyyy/MM/dd")} 开启
-            </div>
-            <div className="flex items-center gap-2">
-              <History className="w-3.5 h-3.5" />
-              已陪伴 {elapsedText}
-            </div>
           </div>
         )}
 
-        <div className="mt-auto pt-8">
+        {isAnniversary && (
+          <div className="mt-2 space-y-1.5 text-sm font-bold text-base-content/50 bg-base-100/40 p-3 rounded-2xl border border-base-content/5">
+            <div className="flex items-center gap-2">
+              <CalendarHeart className="w-4 h-4" />
+              {format(originalTarget, "yyyy/MM/dd")} 开启
+            </div>
+            {elapsedText && (
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                已陪伴 {elapsedText}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto pt-6">
           <div
-            className={`font-black text-6xl tracking-tighter flex items-baseline gap-2 ${displayDays === 0 ? "text-secondary" : "text-primary"}`}
+            className={`font-black tracking-tighter flex items-baseline gap-2 ${displayDays === 0 ? "text-secondary" : "text-primary"}`}
           >
-            <span className="text-xs font-black opacity-30 tracking-[0.2em]">
+            <span className="text-sm font-black opacity-30 tracking-[0.2em]">
               {prefixText}
             </span>
-            {displayDays}
+            <span className="text-7xl">{displayDays}</span>
             <span className="text-2xl font-black">天</span>
           </div>
         </div>
 
-        {/* 底部对齐的进度条与胶囊标签 */}
-        <div className="mt-6 space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              {event.categories.map((c) => (
-                <span
-                  key={c.id}
-                  className="px-4 py-1.5 rounded-full bg-base-100/60 border-none text-[10px] font-black text-base-content/50 uppercase tracking-tighter shadow-none"
-                >
-                  {c.name}
-                </span>
-              ))}
-            </div>
-            <span className="text-[10px] font-black opacity-20 whitespace-nowrap">
+        {/* 🌟 底部对齐的进度条与日期 (移除旧标签后重新排版) */}
+        <div className="mt-5 space-y-2">
+          <div className="flex justify-end items-center">
+            <span className="text-xs font-black opacity-40 whitespace-nowrap tracking-wider">
               {format(targetDisplayDate, "yyyy/MM/dd")}
             </span>
           </div>
 
-          {/* 🌟 进度条：移除了原生样式的干扰，使用自定义颜色注入 */}
           <div className="w-full h-3 bg-base-content/5 rounded-full overflow-hidden shadow-inner">
             <motion.div
               initial={{ width: 0 }}
