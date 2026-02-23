@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Momentary",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "identifier": "com.yuna.momentary",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -14,11 +14,9 @@
       "windows": {
         "installMode": "passive"
       },
-
       "endpoints": [
         "https://github.com/YuNa-Zju/countdowndays/releases/latest/download/latest.json"
       ],
-
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2ODg3NDU0RTIzMjQxNDEKUldSQlFUTGlWSFNJZGdKVDFBNFlPMkFMdHBGbUhMTkxHaU9ORTNBWUJOd1d2amlzSDdydkpmeVIK"
     }
   },
@@ -81,7 +79,10 @@
     ],
     "windows": {
       "nsis": {
-        "languages": ["SimpChinese", "English"]
+        "languages": [
+          "SimpChinese",
+          "English"
+        ]
       }
     }
   }
