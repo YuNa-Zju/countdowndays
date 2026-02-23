@@ -30,11 +30,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "npm"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: 开启 Rust 魔法缓存
+        uses: Swatinem/rust-cache@v2
+        with:
+          # 告诉缓存插件，我们的 Cargo.toml 藏在 src-tauri 文件夹里
+          workspaces: "src-tauri -> target"
 
       - name: Install frontend dependencies
         run: npm install
