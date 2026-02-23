@@ -43,15 +43,12 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 🌟 核心修复：注入私钥！这是生成增量更新包 (.zip 和 .sig) 的关键！
-          # 记得去 GitHub 仓库的 Settings -> Secrets 里把它们配好
+          # 🌟 核心修复：只喂给它私钥，彻底剥离密码环境变量！
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: app-v__VERSION__
           releaseName: "Momentary v__VERSION__"
 
-          # 🌟 动态获取更新内容：直接提取你最后一次的 Commit 信息
           releaseBody: |
             ✨ Momentary 桌面端全新版本发布！
 
@@ -67,9 +64,6 @@ jobs:
             因为这是开源免费软件，未经过苹果高昂的付费签名。请将应用拖入「应用程序」文件夹后，打开「终端」并运行以下命令解锁：
             `sudo xattr -rd com.apple.quarantine /Applications/Momentary.app`
 
-          # 🌟 进阶建议：将这里改为 true
-          # 这样打包完成后，Release 会是“草稿”状态。
-          # 你可以去 GitHub 网页上用那个极其好用的 "Generate release notes" 按钮自动汇总所有的 PR 和 Commit，精修一下文案，再点击发布！
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

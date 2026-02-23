@@ -14,7 +14,7 @@
       "endpoints": [
         "https://github.com/YuNa-Zju/countdowndays/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwNDJEREVGQjM4N0QzQ0QKUldUTjA0ZXo3OTFDY01UVEZFQnFTajZjOXFUQzQ4aDNJT01jdWxFSHplK3pTTGpZVDFxT1ZaUWYK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExMDY1RjRBREI4RTk5NzEKUldSeG1ZN2JTbDhHb1ozQ0JZUldpZXF1RFZFMmZrbDFxU1MrS2lJeG1QYktIYVhkU2NjdkkyaUYK"
     }
   },
   "app": {
@@ -75,10 +75,7 @@
     ],
     "windows": {
       "nsis": {
-        "languages": [
-          "SimpChinese",
-          "English"
-        ]
+        "languages": ["SimpChinese", "English"]
       }
     }
   }
