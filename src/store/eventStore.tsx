@@ -132,9 +132,13 @@ export const useEventStore = create<EventState>((set, get) => ({
           categories: event.categories.filter((cat) => cat.id !== id),
         })),
       }));
-      toast.success("标签已删除");
+      toast("标签已删除！", {
+        icon: <Trash2 className="w-5 h-5 text-error" />,
+      });
     } catch (error) {
-      toast.error("标签删除失败");
+      toast.error("标签删除失败", {
+        icon: <XCircle className="w-5 h-5 text-error" />,
+      });
     }
   },
 }));

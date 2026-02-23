@@ -23,7 +23,7 @@ const defaultEvents: AppEvent[] = [
     title: "Tauri + React 项目完工",
     description: "搞定前端样式，连通 Rust 后端。",
     target_date: "2026-03-01T12:00:00.000Z",
-    importance: 90,
+    importance: 9,
     event_type: "task",
     meta: "{}",
     categories: [defaultCategories[0]],
@@ -77,7 +77,7 @@ const api = {
     }
     console.log("API: createEvent", dto);
     return await invoke<number>("create_event", {
-      payloadStr: JSON.stringify(dto),
+      payload: dto,
     });
   },
 
@@ -98,7 +98,7 @@ const api = {
       saveMockData(); // 🌟 保存
       return;
     }
-    return await invoke("update_event", { payloadStr: JSON.stringify(dto) });
+    return await invoke("update_event", { payload: dto });
   },
 
   async deleteEvent(id: number): Promise<void> {

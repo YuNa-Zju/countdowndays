@@ -18,6 +18,20 @@ function App() {
   const { openCreateModal, theme } = useUiBus();
   const { fetchData } = useEventStore();
 
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      // 当其他窗口（如主窗口）修改了 localStorage 时触发
+      if (e.key === "countdown-ui-storage") {
+        // 强制当前窗口的 Zustand 重新从 localStorage 中提取最新状态
+        useUiBus.persist.rehydrate();
+      }
+    };
+
+    // 监听 storage 事件，只要主窗口切换了主题，悬浮窗甚至不需要唤醒就会在后台默默更新好
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗，并强行注入主题数据和透明背景
   // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗
   if (windowLabel === "fab") {
@@ -81,7 +95,7 @@ function App() {
     // 🌟 3. 修复了 data-theme={theme} 的写法，它不能写进字符串 className 里
     <div
       data-theme={theme}
-      className="min-h-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl"
+      className="min-h-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl overflow-hidden"
     >
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-6">

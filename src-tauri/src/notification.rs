@@ -24,7 +24,6 @@ pub async fn schedule_daily_notification(app_handle: tauri::AppHandle) {
 
             // 如果当前时间是早上 8 点 (你可以改回你测试用的 2 点)，并且今天还没触发过
             if now.hour() == 10 && last_triggered_date != Some(current_date) {
-
                 // 1. 满足时间条件时，才会去查询数据库，绝对不会频繁读写 DB！
                 check_and_notify_events(&app_handle).await;
 
@@ -53,10 +52,15 @@ pub async fn check_and_notify_events(app: &tauri::AppHandle) {
             // 4. 区分类型判断是否需要通知
             if event.event_type == "anniversary" {
                 // 纪念日：仅比对月份和日子
-                if target_local.month() == current_date.month() && target_local.day() == current_date.day() {
+                if target_local.month() == current_date.month()
+                    && target_local.day() == current_date.day()
+                {
                     let years = current_date.year() - target_local.year();
                     if years > 0 {
-                        notify_msg = Some(format!("今天是【{}】的 {} 周年纪念日！", event.title, years));
+                        notify_msg = Some(format!(
+                            "今天是【{}】的 {} 周年纪念日！",
+                            event.title, years
+                        ));
                     } else if years == 0 {
                         notify_msg = Some(format!("【{}】就在今天开启啦！", event.title));
                     }
@@ -70,7 +74,8 @@ pub async fn check_and_notify_events(app: &tauri::AppHandle) {
 
             // 5. 调用通知插件发送系统通知
             if let Some(msg) = notify_msg {
-                let _ = app.notification()
+                let _ = app
+                    .notification()
                     .builder()
                     .title("📅 倒数日提醒")
                     .body(&msg)

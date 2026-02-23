@@ -64,7 +64,7 @@ export default function EventCard({ event }: EventCardProps) {
     }
   }
 
-  const importanceColor = `hsl(348, ${50 + event.importance / 2}%, ${65 - event.importance / 3}%)`;
+  const importanceColor = `hsl(348, ${50 + (event.importance * 10) / 2}%, ${65 - (event.importance * 10) / 3}%)`;
 
   return (
     <motion.div

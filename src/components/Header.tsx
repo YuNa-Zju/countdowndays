@@ -45,7 +45,7 @@ export default function Header() {
       {/* 🌟 原本的导航栏内容（稍微调整了 Padding） */}
       <div
         data-tauri-drag-region
-        className={`navbar min-h-[3rem] ${isDesktop ? "pb-2 pt-0" : "py-2"}`}
+        className={`navbar min-h-12 ${isDesktop ? "pb-2 pt-0" : "py-2"}`}
       >
         <div className="navbar-start"></div>
         <div

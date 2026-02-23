@@ -15,8 +15,8 @@ pub enum AppError {
     #[error("Migration error: {0}")]
     Migrate(#[from] sqlx::migrate::MigrateError),
     // 预留给未来的业务逻辑报错，比如“日程不存在”、“参数校验失败”
-    #[error("业务逻辑异常: {0}")]
-    Business(String),
+    // #[error("业务逻辑异常: {0}")]
+    // Business(String),
 }
 
 /// 为了让 Tauri 的 #[tauri::command] 能把错误抛给 React 前端，

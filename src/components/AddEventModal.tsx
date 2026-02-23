@@ -72,7 +72,7 @@ const BasicInfoSection = ({
           required
           type="text"
           placeholder="起个名字..."
-          className={`${styles.input} !text-xl !py-4 !font-bold`}
+          className={`${styles.input} text-xl! py-4! font-bold!`}
           value={formData.title}
           onChange={(e) => updateField("title", e.target.value)}
         />
@@ -139,7 +139,7 @@ const MetaSection = ({
 
       <div className="mb-6">
         <label className={styles.label}>标签</label>
-        <div className="bg-base-200/30 border border-base-200 rounded-2xl p-4 flex flex-wrap gap-2.5 items-center min-h-[4rem]">
+        <div className="bg-base-200/30 border border-base-200 rounded-2xl p-4 flex flex-wrap gap-2.5 items-center min-h-16">
           {categories.map((cat: Category) => {
             const isSelected = formData.category_ids.includes(cat.id);
             return (
@@ -190,7 +190,7 @@ const MetaSection = ({
         <label className={styles.label}>详情备注</label>
         <textarea
           placeholder="写点什么..."
-          className={`${styles.input} flex-1 min-h-[120px] resize-none leading-relaxed`}
+          className={`${styles.input} flex-1 min-h-30 resize-none leading-relaxed`}
           value={formData.description}
           onChange={(e) => updateField("description", e.target.value)}
         />
@@ -209,7 +209,7 @@ const MetaSection = ({
               initial={{ scale: 0.9, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 10 }}
-              className="bg-base-100 border border-base-200/60 shadow-2xl rounded-3xl p-6 flex flex-col items-center text-center max-w-[260px]"
+              className="bg-base-100 border border-base-200/60 shadow-2xl rounded-3xl p-6 flex flex-col items-center text-center max-w-65"
             >
               <div className="w-12 h-12 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
                 <AlertTriangle className="w-6 h-6" />
@@ -235,6 +235,12 @@ const MetaSection = ({
                   className="flex-1 px-4 py-2.5 rounded-xl font-bold text-xs bg-error hover:bg-error/90 text-white shadow-md shadow-error/20 transition-all"
                   onClick={() => {
                     deleteCategoryOptimistic(tagToDelete.id);
+                    updateField(
+                      "category_ids",
+                      formData.category_ids.filter(
+                        (id: number) => id !== tagToDelete.id,
+                      ),
+                    );
                     setTagToDelete(null);
                   }}
                 >
@@ -318,7 +324,7 @@ export default function AddEventModal() {
   return (
     <AnimatePresence>
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-8">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

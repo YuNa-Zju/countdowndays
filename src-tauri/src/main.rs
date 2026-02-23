@@ -4,21 +4,23 @@ mod commands;
 mod db;
 mod errors;
 mod models;
-mod repositories;
 mod notification;
+mod repositories;
 
 use tauri::Manager;
 // 🌟 引入 Tauri v2 托盘所需的组件
-use tauri::{
-    image::Image,
-    menu::{Menu, MenuItem, CheckMenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-};
 use notification::schedule_daily_notification;
 use std::sync::Mutex;
+use tauri::{
+    image::Image,
+    menu::{CheckMenuItem, Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+};
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
         .manage(Mutex::new(true))
         .setup(|app| {
@@ -28,7 +30,8 @@ fn main() {
             // ==========================================
             // 定义托盘的右键菜单
             let show_i = MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
-            let fab_i = CheckMenuItem::with_id(app, "toggle_fab", "启用悬浮窗", true, true, None::<&str>)?;
+            let fab_i =
+                CheckMenuItem::with_id(app, "toggle_fab", "启用悬浮窗", true, true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &fab_i, &quit_i])?;
             let tray_icon = Image::from_bytes(include_bytes!("../../tray.png"))
@@ -55,7 +58,11 @@ fn main() {
                         *is_enabled = !*is_enabled;
 
                         if let Some(fab) = app.get_webview_window("fab") {
-                            let main_visible = app.get_webview_window("main").unwrap().is_visible().unwrap_or(true);
+                            let main_visible = app
+                                .get_webview_window("main")
+                                .unwrap()
+                                .is_visible()
+                                .unwrap_or(true);
                             if *is_enabled && !main_visible {
                                 let _ = fab.show();
                             } else {
