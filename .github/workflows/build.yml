@@ -39,11 +39,22 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      # 🌟 猛药一：在打包前，强行检查 GitHub 是否真的读到了你的私钥！
+      - name: 🕵️ 检查私钥是否成功注入 (Debug)
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.TAURI_PRIVATE_KEY }}" ]; then
+            echo "::error::🚨 致命错误：GitHub 完全没有读取到 TAURI_PRIVATE_KEY！请检查是否放在了 Settings -> Secrets -> Repository secrets 中。"
+            exit 1
+          else
+            echo "✅ 私钥变量已成功读取，准备注入打包流程！"
+          fi
+
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 🌟 核心修复：只喂给它私钥，彻底剥离密码环境变量！
+          # 🌟 只喂私钥，彻底抛弃密码
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
         with:
           tagName: app-v__VERSION__
@@ -66,4 +77,5 @@ jobs:
 
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          # 🌟 猛药二：加上 -v 参数，强行让 Tauri 吐出所有底层打包细节
+          args: ${{ matrix.args }} -v
