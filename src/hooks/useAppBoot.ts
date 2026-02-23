@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
-
+import { check } from "@tauri-apps/plugin-updater";
 // 提取你定义好的 Theme 类型
 export type Theme =
   | "nord"
@@ -19,6 +19,27 @@ export function useAppBoot() {
   const [resolvedTheme, setResolvedTheme] = useState<Exclude<Theme, "system">>(
     theme === "system" ? "pastel-light" : (theme as Exclude<Theme, "system">),
   );
+
+  // 🌟 后台静默检查更新 (仅限主窗口执行，防止悬浮窗和托盘重复检查)
+  useEffect(() => {
+    const checkUpdateSilently = async () => {
+      try {
+        const update = await check();
+        if (update) {
+          console.log(`🎉 发现新版本: ${update.version}`);
+          // 呼出我们华丽的旗舰弹窗，并把 update 对象传进去！
+          useUiBus.getState().openUpdateModal(update);
+        }
+      } catch (error) {
+        // 静默失败，不打扰用户
+        console.error("检查更新失败:", error);
+      }
+    };
+
+    if (getCurrentWindow().label === "main") {
+      checkUpdateSilently();
+    }
+  }, []);
 
   // ==========================================
   // 1. 主窗口焦点监听 (仅 main 窗口需要)

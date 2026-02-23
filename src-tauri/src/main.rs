@@ -18,6 +18,7 @@ use tauri::{Emitter, Manager, PhysicalPosition};
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         // 🌟 修复：去掉了重复的 plugin 注册
         .plugin(tauri_plugin_shell::init())

@@ -6,6 +6,7 @@ import AddEventModal from "./AddEventModal";
 import CommandPalette from "./CommandPalette"; // 🌟 引入
 import { AnimatePresence, motion } from "framer-motion";
 import renderDescription from "../utils/textUtils";
+import UpdateModal from "./UpdateModal";
 
 export default function GlobalModals() {
   const {
@@ -94,6 +95,7 @@ export default function GlobalModals() {
       </dialog>
       <AddEventModal />
       <CommandPalette /> {/* 🌟 挂载全局 Cmdk */}
+      <UpdateModal />
       {isNoteModalOpen && noteModalContent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div

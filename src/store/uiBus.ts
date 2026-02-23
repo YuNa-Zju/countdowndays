@@ -1,6 +1,6 @@
 import { create } from "zustand";
-// 🌟 引入 persist 持久化中间件
 import { persist } from "zustand/middleware";
+import { type Update } from "@tauri-apps/plugin-updater";
 
 export type Theme =
   | "nord"
@@ -27,14 +27,15 @@ interface UiState {
   eventToDelete: number | null;
   viewMode: ViewMode;
   contextMenu: ContextMenuState;
-
-  // 🌟 新增：记录分组的折叠/展开状态 (例如: { "Anniversary": true, "Task": false })
   expandedGroups: Record<string, boolean>;
+
+  // 🌟 2. 增加更新相关的状态和方法
+  isUpdateModalOpen: boolean;
+  updateInfo: Update | null;
 
   openCmdk: () => void;
   closeCmdk: () => void;
   toggleCmdk: () => void;
-
   openCreateModal: () => void;
   openEditModal: (id: number) => void;
   closeModal: () => void;
@@ -42,18 +43,18 @@ interface UiState {
   openDeleteModal: (id: number) => void;
   closeDeleteModal: () => void;
   toggleViewMode: () => void;
-
-  // 🌟 新增：切换某个分组的展开/折叠状态
   toggleGroup: (groupName: string) => void;
-
   openContextMenu: (x: number, y: number, eventId: number) => void;
   closeContextMenu: () => void;
   noteModalContent: { title: string; description: string } | null;
   openNoteModal: (title: string, description: string) => void;
   closeNoteModal: () => void;
+
+  // 🌟 3. 增加更新相关的方法签名
+  openUpdateModal: (info: Update) => void;
+  closeUpdateModal: () => void;
 }
 
-// 🌟 使用 persist 包裹整个 store 设置
 export const useUiBus = create<UiState>()(
   persist(
     (set) => ({
@@ -66,9 +67,11 @@ export const useUiBus = create<UiState>()(
       viewMode: "flat",
       contextMenu: { isOpen: false, x: 0, y: 0, eventId: null },
       isNoteModalOpen: false,
-
-      // 🌟 初始状态：空对象（代表默认行为，可以在组件里判断为 undefined 时默认展开）
       expandedGroups: {},
+
+      // 🌟 4. 初始化更新状态
+      isUpdateModalOpen: false,
+      updateInfo: null,
 
       openCmdk: () => set({ isCmdkOpen: true }),
       closeCmdk: () => set({ isCmdkOpen: false }),
@@ -93,7 +96,6 @@ export const useUiBus = create<UiState>()(
           viewMode: state.viewMode === "flat" ? "grouped" : "flat",
         })),
 
-      // 🌟 新增的 toggle 方法：点击时反转当前的 boolean 值
       toggleGroup: (groupName) =>
         set((state) => ({
           expandedGroups: {
@@ -117,10 +119,15 @@ export const useUiBus = create<UiState>()(
         }),
       closeNoteModal: () =>
         set({ isNoteModalOpen: false, noteModalContent: null }),
+
+      // 🌟 5. 实现打开和关闭更新弹窗的方法
+      openUpdateModal: (update) =>
+        set({ isUpdateModalOpen: true, updateInfo: update }),
+      closeUpdateModal: () =>
+        set({ isUpdateModalOpen: false, updateInfo: null }),
     }),
     {
-      name: "countdown-ui-storage", // 存入 localStorage 的 key 名字
-      // 🌟 核心：只挑选你需要持久化的数据，不要把"弹窗打开"这种临时状态存进去！
+      name: "countdown-ui-storage",
       partialize: (state) => ({
         theme: state.theme,
         viewMode: state.viewMode,
