@@ -13,7 +13,8 @@ use tauri::{
     image::Image,
     tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent, MouseButton},
 };
-use tauri::{Manager, PhysicalPosition};
+// 🌟 核心修复 1：引入 Emitter 使得后端可以向前端发送事件
+use tauri::{Manager, PhysicalPosition, Emitter};
 
 fn main() {
     tauri::Builder::default()
@@ -123,12 +124,22 @@ fn main() {
                 .build(app)?;
 
             // ==========================================
-            // 2. 初始化数据库及后台任务
+            // 🌟 2. 初始化数据库及后台任务 (核心修复区)
             // ==========================================
-            tauri::async_runtime::block_on(async move {
-                let pool = db::init_db(&app_handle).await.expect("数据库初始化失败");
-                app_handle.manage(pool);
-                let bg_app_handle = app_handle.clone();
+            // 不要使用 block_on 阻塞主线程，改用 spawn 后台执行
+            let setup_app_handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                // 1. 异步等待数据库连接和迁移完成
+                let pool = db::init_db(&setup_app_handle).await.expect("数据库初始化失败");
+
+                // 2. 将连接池挂载到全局状态中
+                setup_app_handle.manage(pool);
+
+                // 3. 🌟 关键：通知前端数据库已经挂载完毕，可以安全发起请求了！
+                let _ = setup_app_handle.emit("db-ready", ());
+
+                // 4. 继续运行原有的后台定时任务
+                let bg_app_handle = setup_app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     schedule_daily_notification(bg_app_handle).await;
                 });

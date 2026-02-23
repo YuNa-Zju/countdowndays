@@ -86,7 +86,7 @@ export default function TrayMenu() {
       {/* 🌟 加上 ref，且固定一个合适的宽度（比如 w-56 就是 224px） */}
       <div
         ref={cardRef}
-        className="w-56 bg-base-100/90 backdrop-blur-2xl border border-base-200/60 rounded-3xl shadow-2xl flex flex-col p-2 gap-1 relative overflow-hidden h-fit"
+        className="w-56 bg-base-100/90 backdrop-blur-2xl border border-base-200/60 rounded-3xl flex flex-col p-2 gap-1 relative overflow-hidden h-fit"
       >
         <div className="px-3 pt-2 pb-1 flex justify-between items-center">
           <span className="text-[10px] font-black tracking-widest text-base-content/40 uppercase">
@@ -131,7 +131,7 @@ export default function TrayMenu() {
               className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 shrink-0 ${fabEnabled ? "bg-primary" : "bg-base-300"}`}
             >
               <div
-                className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ${fabEnabled ? "translate-x-4" : "translate-x-0"}`}
+                className={`w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${fabEnabled ? "translate-x-4" : "translate-x-0"}`}
               />
             </div>
           </button>

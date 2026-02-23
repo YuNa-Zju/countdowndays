@@ -3,7 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
-// 提取你定义好的 Theme 类型（如果是在别的文件定义的，也可以直接 import 过来）
+
+// 提取你定义好的 Theme 类型
 export type Theme =
   | "nord"
   | "dracula"
@@ -15,15 +16,15 @@ export function useAppBoot() {
   const { openCreateModal, theme } = useUiBus();
   const { fetchData } = useEventStore();
 
-  // 🌟 将解析后的主题类型排除掉 "system"，因为它最终一定会被渲染成具体的颜色配置
   const [resolvedTheme, setResolvedTheme] = useState<Exclude<Theme, "system">>(
     theme === "system" ? "pastel-light" : (theme as Exclude<Theme, "system">),
   );
 
+  // ==========================================
+  // 1. 主窗口焦点监听 (仅 main 窗口需要)
+  // ==========================================
   useEffect(() => {
     const appWindow = getCurrentWindow();
-
-    // 只有 main 窗口才需要监听自己的聚焦事件
     if (appWindow.label === "main") {
       const unlistenFocus = appWindow.onFocusChanged(
         async ({ payload: focused }) => {
@@ -35,22 +36,20 @@ export function useAppBoot() {
           }
         },
       );
-
       return () => {
         unlistenFocus.then((f) => f());
       };
     }
   }, []);
 
-  // 🌟 核心映射逻辑：监听系统偏好，并分配给我们的 pastel 专属主题
+  // ==========================================
+  // 2. 主题映射与系统偏好监听 (所有窗口都需要)
+  // ==========================================
   useEffect(() => {
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-      // 初始判断：黑夜给 pastel-dark，白天给 pastel-light
       setResolvedTheme(mediaQuery.matches ? "pastel-dark" : "pastel-light");
 
-      // 实时监听系统级别的切换
       const handler = (e: MediaQueryListEvent) => {
         setResolvedTheme(e.matches ? "pastel-dark" : "pastel-light");
       };
@@ -61,49 +60,74 @@ export function useAppBoot() {
     }
   }, [theme]);
 
-  // ------------------------------------------------------------------
-  // 下面是原有的核心启动逻辑，保持不变
-  // ------------------------------------------------------------------
+  // ==========================================
+  // 3. 🌟 修复 Bug: 多窗口状态同步 (所有窗口都需要)
+  // ==========================================
+  // 把 storage 监听器移出 main 判断，这样 tray 和 fab 也能监听到 localStorage 的变化了
   useEffect(() => {
-    fetchData();
-
     const handleStorage = (e: StorageEvent) => {
+      // 当主页面修改了 zustand 的持久化存储时，这里会被触发
       if (e.key === "countdown-ui-storage") {
         useUiBus.persist.rehydrate();
       }
     };
     window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
-    const unlisten = listen("wake-main-and-create", async () => {
-      openCreateModal();
-    });
+  // ==========================================
+  // 4. 数据拉取、全局快捷键拦截 (仅 main 窗口需要)
+  // ==========================================
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "F5" ||
-        (e.ctrlKey && e.key.toLowerCase() === "r") ||
-        (e.metaKey && e.key.toLowerCase() === "r")
-      ) {
-        e.preventDefault();
-      }
-    };
+    if (appWindow.label === "main") {
+      // 🌟 核心防闪退机制：等待 Rust 的 db-ready 信号才能发请求！
+      const unlistenDb = listen("db-ready", () => {
+        fetchData();
+      });
 
-    const handleContextMenu = (e: MouseEvent) => {
-      if (import.meta.env.PROD) {
-        e.preventDefault();
-      }
-    };
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (
+          e.key === "F5" ||
+          (e.ctrlKey && e.key.toLowerCase() === "r") ||
+          (e.metaKey && e.key.toLowerCase() === "r")
+        ) {
+          e.preventDefault();
+        }
+      };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("contextmenu", handleContextMenu);
+      const handleContextMenu = (e: MouseEvent) => {
+        if (import.meta.env.PROD) {
+          e.preventDefault();
+        }
+      };
 
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("contextmenu", handleContextMenu);
-      unlisten.then((f) => f());
-    };
-  }, [fetchData, openCreateModal]);
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("contextmenu", handleContextMenu);
+
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("contextmenu", handleContextMenu);
+        // 记得清理事件监听
+        unlistenDb.then((f) => f());
+      };
+    }
+  }, [fetchData]);
+
+  // ==========================================
+  // 5. 唤醒主窗口并创建 (仅 main 窗口需要)
+  // ==========================================
+  useEffect(() => {
+    if (getCurrentWindow().label === "main") {
+      const unlisten = listen("wake-main-and-create", async () => {
+        openCreateModal();
+      });
+      return () => {
+        unlisten.then((f) => f());
+      };
+    }
+  }, [openCreateModal]);
 
   return { resolvedTheme };
 }
