@@ -340,6 +340,7 @@ export default function AddEventModal() {
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full max-w-5xl bg-base-100 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-base-200/60"
+            style={{ WebkitMaskImage: "-webkit-radial-gradient(white, black)" }}
           >
             <div className="px-8 py-6 flex justify-between items-center bg-base-100 z-10">
               <h3 className="font-black text-xl text-base-content tracking-tight">

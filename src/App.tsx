@@ -43,17 +43,24 @@ function App() {
   return (
     <div
       data-theme={resolvedTheme}
-      className="min-h-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl overflow-hidden"
+      className="h-screen w-screen bg-base-200 font-sans transition-colors duration-300 rounded-[2rem] overflow-hidden relative"
+      // 🌟 这个兜底的裁切遮罩千万别删，它保证了内部列表滚动时不会破坏底部的圆角
+      style={{ WebkitMaskImage: "linear-gradient(white, white)" }}
     >
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <EventList />
-      </main>
+      {/* 滚动层：绝对定位完美铺满外层，原生文档流，保证动画绝不消失 */}
+      <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          <EventList />
+        </main>
+      </div>
+
       <FloatingButton />
       <GlobalModals />
 
       <Toaster
         position="bottom-center"
+        reverseOrder={false}
         toastOptions={{
           className:
             "!bg-base-100 !text-base-content !rounded-full !shadow-xl !border !border-base-200 !px-6 !py-3 font-medium",

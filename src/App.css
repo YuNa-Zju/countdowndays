@@ -199,20 +199,3 @@
     transform: translate(-50%, -50%) scale(1);
   }
 }
-
-/* 🌟 必须放在 CSS 文件的最顶端！暴力清除所有底层背景 */
-:root,
-html,
-body,
-#root {
-  background-color: transparent !important;
-  background: transparent !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-/* 隐藏 Tauri 偶尔在 Windows 上产生的系统级焦点虚线 */
-* {
-  outline: none !important;
-}
