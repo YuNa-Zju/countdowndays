@@ -2,10 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": [
-    "main",
-    "fab"
-  ],
+  "windows": ["main", "fab", "tray"],
   "permissions": [
     "core:default",
     "opener:default",
@@ -17,6 +14,11 @@
     "notification:default",
     "core:window:allow-hide",
     "core:window:allow-set-size",
-    "shell:default"
+    "shell:default",
+    "process:default",
+    "core:event:allow-listen",
+    "core:window:allow-unminimize",
+    "core:window:allow-show",
+    "core:window:allow-set-focus"
   ]
 }

@@ -1,100 +1,48 @@
-import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import Header from "./components/Header";
 import EventList from "./components/EventList";
 import FloatingButton from "./components/FloatingButton";
 import GlobalModals from "./components/GlobalModals";
-import { useEventStore } from "./store/eventStore";
 import FabWidget from "./components/FabWidget";
-// 🌟 确保引入了 Window，用于跨窗口唤醒
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
-import { useUiBus } from "./store/uiBus";
+import { useAppBoot } from "./hooks/useAppBoot";
 import "./App.css";
+import TrayMenu from "./components/TrayMenu";
 
 function App() {
   const windowLabel = getCurrentWindow().label;
-  // 🌟 从 Zustand 提取 theme，给主界面和悬浮窗同时使用
-  const { openCreateModal, theme } = useUiBus();
-  const { fetchData } = useEventStore();
+  const { resolvedTheme } = useAppBoot();
 
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      // 当其他窗口（如主窗口）修改了 localStorage 时触发
-      if (e.key === "countdown-ui-storage") {
-        // 强制当前窗口的 Zustand 重新从 localStorage 中提取最新状态
-        useUiBus.persist.rehydrate();
-      }
-    };
+  // 🌟 一行代码接管所有的快捷键拦截、数据请求、窗口通信
+  useAppBoot();
 
-    // 监听 storage 事件，只要主窗口切换了主题，悬浮窗甚至不需要唤醒就会在后台默默更新好
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+  if (windowLabel === "tray") {
+    return (
+      <div
+        data-theme={resolvedTheme}
+        className="w-screen h-screen bg-transparent overflow-hidden text-base-content select-none cursor-default"
+      >
+        <TrayMenu />
+      </div>
+    );
+  }
 
-  // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗，并强行注入主题数据和透明背景
-  // 🌟 1. 如果当前是 fab 窗口，渲染悬浮窗
+  // 渲染悬浮窗 (Fab)
   if (windowLabel === "fab") {
     return (
-      // 外壳透明+p-2，以便让里面的圆角卡片阴影显示出来
       <div
-        data-theme={theme}
-        className="w-screen h-screen bg-transparent overflow-hidden text-base-content rounded-2xl"
+        data-theme={resolvedTheme}
+        className="w-screen h-screen bg-transparent overflow-hidden text-base-content rounded-2xl select-none cursor-default"
       >
         <FabWidget />
       </div>
     );
   }
 
-  // 👇 下面全都是主窗口 (main) 的逻辑
-
-  useEffect(() => {
-    // 监听悬浮窗发来的新建事件
-    const unlisten = listen("wake-main-and-create", async () => {
-      openCreateModal(); // 调起 Zustand 里的弹窗
-    });
-
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [openCreateModal]);
-
-  // 🌟 核心初始化：组件挂载时，主动去拿一次数据
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // 🌟 禁用 F5 与右键刷新逻辑
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === "F5" ||
-        (e.ctrlKey && e.key.toLowerCase() === "r") ||
-        (e.metaKey && e.key.toLowerCase() === "r")
-      ) {
-        e.preventDefault();
-      }
-    };
-
-    const handleContextMenu = (e: MouseEvent) => {
-      if (import.meta.env.PROD) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("contextmenu", handleContextMenu);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, []);
-
+  // 渲染主界面 (Main)
   return (
-    // 🌟 3. 修复了 data-theme={theme} 的写法，它不能写进字符串 className 里
     <div
-      data-theme={theme}
+      data-theme={resolvedTheme}
       className="min-h-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl overflow-hidden"
     >
       <Header />
@@ -102,12 +50,10 @@ function App() {
         <EventList />
       </main>
       <FloatingButton />
-
       <GlobalModals />
 
       <Toaster
         position="bottom-center"
-        reverseOrder={false}
         toastOptions={{
           className:
             "!bg-base-100 !text-base-content !rounded-full !shadow-xl !border !border-base-200 !px-6 !py-3 font-medium",

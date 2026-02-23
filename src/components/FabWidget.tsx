@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, Window } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import {
   differenceInDays,
@@ -103,7 +103,15 @@ export default function FabWidget() {
 
   const handleLeftClick = async () => {
     try {
-      await invoke("wake_main_window");
+      const mainWindow = await Window.getByLabel("main");
+      if (mainWindow) {
+        await mainWindow.unminimize();
+        await mainWindow.show();
+        await mainWindow.setFocus();
+
+        const fabWindow = await Window.getByLabel("fab");
+        if (fabWindow) await fabWindow.hide();
+      }
     } catch (error) {
       console.error("【Widget】唤醒主程序时发生错误:", error);
     }

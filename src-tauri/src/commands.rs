@@ -2,6 +2,7 @@ use crate::errors::AppResult;
 use crate::models::{Category, CreateEventDto, Event, UpdateEventDto};
 use crate::repositories::EventRepository;
 use sqlx::SqlitePool;
+use std::sync::Mutex;
 use tauri::{Emitter, Manager, State};
 
 #[tauri::command]
@@ -51,4 +52,33 @@ pub fn wake_main_window(app: tauri::AppHandle) {
     if let Some(fab) = app.get_webview_window("fab") {
         let _ = fab.hide();
     }
+}
+
+#[tauri::command]
+pub fn get_fab_state(state: State<'_, Mutex<bool>>) -> bool {
+    *state.lock().unwrap()
+}
+
+// 切换悬浮窗的开关状态
+#[tauri::command]
+pub fn toggle_fab(app: tauri::AppHandle, state: State<'_, Mutex<bool>>) -> bool {
+    let mut is_enabled = state.lock().unwrap();
+    *is_enabled = !*is_enabled;
+    let new_state = *is_enabled;
+
+    if let Some(fab) = app.get_webview_window("fab") {
+        let main_visible = app
+            .get_webview_window("main")
+            .unwrap()
+            .is_visible()
+            .unwrap_or(true);
+
+        // 只有开关打开，且主窗口隐藏时，才显示悬浮窗
+        if new_state && !main_visible {
+            let _ = fab.show();
+        } else {
+            let _ = fab.hide();
+        }
+    }
+    new_state
 }
