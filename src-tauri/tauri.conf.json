@@ -11,11 +11,15 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
+      "windows": {
+        "installMode": "passive"
+      },
+
       "endpoints": [
         "https://github.com/YuNa-Zju/countdowndays/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFMjEwNTUzQjlBMjY2REQKUldUZFpxSzVVd1VoN3U1YWpSSE5OaHk3SjRLTjFDeWFTbk8yTDBXdWhPNWliaDR4d2p4VmVTc1kK"
+
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2ODg3NDU0RTIzMjQxNDEKUldSQlFUTGlWSFNJZGdKVDFBNFlPMkFMdHBGbUhMTkxHaU9ORTNBWUJOd1d2amlzSDdydkpmeVIK"
     }
   },
   "app": {
@@ -77,10 +81,7 @@
     ],
     "windows": {
       "nsis": {
-        "languages": [
-          "SimpChinese",
-          "English"
-        ]
+        "languages": ["SimpChinese", "English"]
       }
     }
   }
