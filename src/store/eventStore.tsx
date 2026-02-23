@@ -29,7 +29,7 @@ export const useEventStore = create<EventState>((set, get) => ({
       set({ events, categories });
     } catch (error) {
       console.error("数据加载失败:", error);
-      toast.error("数据加载失败，请检查数据库连接", {
+      toast.error(`数据加载失败，请检查数据库连接: ${error}`, {
         icon: <XCircle className="w-5 h-5 text-error" />,
       });
     }
