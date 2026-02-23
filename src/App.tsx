@@ -43,7 +43,7 @@ function App() {
   return (
     <div
       data-theme={resolvedTheme}
-      className="h-screen w-screen bg-base-200 font-sans transition-colors duration-300 rounded-[2rem] overflow-hidden relative"
+      className="h-screen w-screen bg-base-200 font-sans transition-colors duration-300 rounded-4xl overflow-hidden relative"
       // 🌟 这个兜底的裁切遮罩千万别删，它保证了内部列表滚动时不会破坏底部的圆角
       style={{ WebkitMaskImage: "linear-gradient(white, white)" }}
     >

@@ -11,10 +11,10 @@ use notification::schedule_daily_notification;
 use std::sync::Mutex;
 use tauri::{
     image::Image,
-    tray::{MouseButtonState, TrayIconBuilder, TrayIconEvent, MouseButton},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 // 🌟 核心修复 1：引入 Emitter 使得后端可以向前端发送事件
-use tauri::{Manager, PhysicalPosition, Emitter};
+use tauri::{Emitter, Manager, PhysicalPosition};
 
 fn main() {
     tauri::Builder::default()
@@ -22,6 +22,20 @@ fn main() {
         // 🌟 修复：去掉了重复的 plugin 注册
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // 当系统检测到用户试图双击图标启动第二个实例时，会拦截启动，并触发这个闭包！
+            // 此时我们直接把已经运行的第一个实例的主窗口“拽”到用户眼前
+            if let Some(main_win) = app.get_webview_window("main") {
+                let _ = main_win.unminimize();
+                let _ = main_win.show();
+                let _ = main_win.set_focus();
+
+                // 🌟 联动保护：主窗口出来了，悬浮窗立刻识趣地退下
+                if let Some(fab) = app.get_webview_window("fab") {
+                    let _ = fab.hide();
+                }
+            }
+        }))
         .manage(Mutex::new(true)) // 管理 fab (悬浮窗) 的全局开启状态
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -58,7 +72,8 @@ fn main() {
                                         // 🌟 联动：恢复悬浮窗
                                         let state = app_handle.state::<Mutex<bool>>();
                                         if *state.lock().unwrap() {
-                                            if let Some(fab) = app_handle.get_webview_window("fab") {
+                                            if let Some(fab) = app_handle.get_webview_window("fab")
+                                            {
                                                 let _ = fab.show();
                                             }
                                         }
@@ -92,25 +107,34 @@ fn main() {
                                             let monitor_pos = monitor.position();
 
                                             // 基于鼠标当前位置计算窗口该往上弹还是往下弹
-                                            let mut y = if cursor_y < (monitor_size.height as f64 / 2.0) {
-                                                cursor_y + 16.0 // 屏幕上半区，往鼠标下方弹一点
-                                            } else {
-                                                cursor_y - win_size.height as f64 - 16.0 // 屏幕下半区，往上方弹
-                                            };
+                                            let mut y =
+                                                if cursor_y < (monitor_size.height as f64 / 2.0) {
+                                                    cursor_y + 16.0 // 屏幕上半区，往鼠标下方弹一点
+                                                } else {
+                                                    cursor_y - win_size.height as f64 - 16.0
+                                                    // 屏幕下半区，往上方弹
+                                                };
 
                                             // X 轴默认以鼠标为中心居中
                                             let mut x = cursor_x - (win_size.width as f64 / 2.0);
 
                                             // 🌟 终极护盾：碰撞边缘限制，绝不超出屏幕
                                             let min_x = monitor_pos.x as f64 + 12.0;
-                                            let max_x = (monitor_pos.x + monitor_size.width as i32) as f64 - win_size.width as f64 - 12.0;
+                                            let max_x = (monitor_pos.x + monitor_size.width as i32)
+                                                as f64
+                                                - win_size.width as f64
+                                                - 12.0;
                                             let min_y = monitor_pos.y as f64 + 12.0;
-                                            let max_y = (monitor_pos.y + monitor_size.height as i32) as f64 - win_size.height as f64 - 12.0;
+                                            let max_y = (monitor_pos.y + monitor_size.height as i32)
+                                                as f64
+                                                - win_size.height as f64
+                                                - 12.0;
 
                                             x = x.clamp(min_x, max_x);
                                             y = y.clamp(min_y, max_y);
 
-                                            let _ = tray_win.set_position(PhysicalPosition::new(x, y));
+                                            let _ =
+                                                tray_win.set_position(PhysicalPosition::new(x, y));
                                             let _ = tray_win.show();
                                             let _ = tray_win.set_focus();
                                         }
@@ -130,7 +154,9 @@ fn main() {
             let setup_app_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
                 // 1. 异步等待数据库连接和迁移完成
-                let pool = db::init_db(&setup_app_handle).await.expect("数据库初始化失败");
+                let pool = db::init_db(&setup_app_handle)
+                    .await
+                    .expect("数据库初始化失败");
 
                 // 2. 将连接池挂载到全局状态中
                 setup_app_handle.manage(pool);

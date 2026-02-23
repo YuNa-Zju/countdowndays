@@ -98,7 +98,16 @@ export default function TrayMenu() {
         <div className="mt-1 space-y-1">
           <button
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-base-content/80 hover:text-primary hover:bg-primary/10 transition-colors"
-            onClick={openMainWindow}
+            onClick={async () => {
+              await invoke("wake_main_window");
+              const mainWindow = await Window.getByLabel("main");
+              if (mainWindow) {
+                await mainWindow.setFocus();
+                const fabWindow = await Window.getByLabel("fab");
+                if (fabWindow) await fabWindow.hide();
+              }
+              await appWindow.hide();
+            }}
           >
             <div className="w-7 h-7 rounded-full bg-base-200/80 flex items-center justify-center shrink-0">
               <Plus className="w-4 h-4" />
@@ -143,7 +152,7 @@ export default function TrayMenu() {
             onClick={handleQuit}
           >
             <X className="w-3.5 h-3.5 shrink-0" />
-            彻底退出
+            退出
           </button>
         </div>
       </div>

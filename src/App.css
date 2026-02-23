@@ -71,12 +71,20 @@
   height: 0;
   background: transparent;
 }
-
+/* 🌟 剥夺 html, body 和 root 的默认背景权 */
+html,
+body,
+#root {
+  background-color: transparent !important;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* 防止出现系统级滚动条破坏边缘 */
+}
 /* =========================================
    2. CmdK 旗舰级卡片风定制
    ========================================= */
 
-/* 遮罩层：高级毛玻璃效果 */
+/* 🌟 遮罩层：高级毛玻璃效果 + 完美圆角裁切 */
 [cmdk-overlay] {
   position: fixed;
   inset: 0;
@@ -84,6 +92,12 @@
   backdrop-filter: blur(12px); /* 加大模糊度，景深感拉满 */
   z-index: 99;
   animation: overlayFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 🌟 核心修复：强行匹配外层 App 的超大圆角，防止遮罩层溢出到透明的四个角 */
+  border-radius: 2rem;
+  overflow: hidden;
+  /* 修复某些 Chromium 内核下圆角边缘可能出现的锯齿或黑边溢出 */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 /* 弹窗主体：大圆角，悬浮阴影 */
