@@ -1,9 +1,16 @@
-// scripts/sync-version.js
-const fs = require("fs");
-const path = require("path");
-const pkg = require("../package.json");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// 在 ES Module 中手动模拟 __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 读取 package.json
+const pkgPath = path.join(__dirname, "../package.json");
+const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 const newVersion = pkg.version;
+
 console.log(`🚀 准备将所有组件版本同步至: v${newVersion}`);
 
 // 1. 同步 tauri.conf.json
@@ -16,7 +23,7 @@ console.log("✅ tauri.conf.json 已更新");
 // 2. 同步 Cargo.toml
 const cargoPath = path.join(__dirname, "../src-tauri/Cargo.toml");
 let cargoConf = fs.readFileSync(cargoPath, "utf8");
-// 使用正则精准替换第一处 version (即 [package] 下的 version)
+// 精准替换 Cargo.toml 里的 version 字段
 cargoConf = cargoConf.replace(
   /^version\s*=\s*".*"/m,
   `version = "${newVersion}"`,
