@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Sparkles,
-  DownloadCloud,
-  X,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, DownloadCloud, X, ChevronRight } from "lucide-react";
 import { useUiBus } from "../store/uiBus";
 import { relaunch } from "@tauri-apps/plugin-process";
 

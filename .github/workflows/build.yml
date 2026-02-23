@@ -1,6 +1,5 @@
 name: Release Desktop App
 
-# 触发条件：当你推送以 v 开头的 tag 时（例如 v0.1.0）
 on:
   push:
     tags:
@@ -10,18 +9,15 @@ on:
 jobs:
   release:
     permissions:
-      contents: write # 允许 Action 自动在你的仓库创建 Release 页面
+      contents: write
 
-    # 🌟 核心魔法：构建矩阵，同时启动 Mac 和 Windows 虚拟机
     strategy:
-      fail-fast: false # 如果其中一个系统打包失败，不要取消另一个系统的打包
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
-            # macOS 打包为 Universal 通用程序（同时支持 M 芯片和 Intel 芯片）
             args: --target universal-apple-darwin
           - os: windows-latest
-            # Windows 默认打包 x64 架构
             args: ""
 
     runs-on: ${{ matrix.os }}
@@ -33,38 +29,47 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # 推荐使用稳定的 Node 20
+          node-version: 20
 
-      # 安装 Rust 环境，并为 macOS 额外添加跨平台编译目标（为了 Universal 包）
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      # 🌟 依赖安装：如果你用的是 pnpm，请改为 pnpm install
       - name: Install frontend dependencies
         run: npm install
 
-      # 调用 Tauri 官方打包组件
       - name: Build and Release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 🌟 核心修复：注入私钥！这是生成增量更新包 (.zip 和 .sig) 的关键！
+          # 记得去 GitHub 仓库的 Settings -> Secrets 里把它们配好
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          # 自动读取 tauri.conf.json 里的版本号
           tagName: app-v__VERSION__
           releaseName: "Momentary v__VERSION__"
+
+          # 🌟 动态获取更新内容：直接提取你最后一次的 Commit 信息
           releaseBody: |
             ✨ Momentary 桌面端全新版本发布！
 
+            **🚀 本次更新内容：**
+            ${{ github.event.head_commit.message }}
+
+            ---
             📦 **下载说明：**
-            - **Windows 用户**：请下载 `.msi` 或 `.exe` 安装包。
+            - **Windows 用户**：可以直接等待软件内弹窗无感更新，或下载 `.msi` / `.exe` 覆盖安装。
             - **macOS 用户**：请下载 `.dmg` 文件。
 
             ⚠️ **macOS 提示“应用已损坏”怎么办？**
             因为这是开源免费软件，未经过苹果高昂的付费签名。请将应用拖入「应用程序」文件夹后，打开「终端」并运行以下命令解锁：
             `sudo xattr -rd com.apple.quarantine /Applications/Momentary.app`
 
+          # 🌟 进阶建议：将这里改为 true
+          # 这样打包完成后，Release 会是“草稿”状态。
+          # 你可以去 GitHub 网页上用那个极其好用的 "Generate release notes" 按钮自动汇总所有的 PR 和 Commit，精修一下文案，再点击发布！
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
