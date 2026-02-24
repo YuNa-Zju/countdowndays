@@ -75,6 +75,14 @@ jobs:
           releaseBody: |
             ✨ Momentary 桌面端全新版本发布！
             🚀 更新内容：${{ github.event.head_commit.message }}
+            ---
+            📦 下载说明：
+
+            - Windows 用户：可以直接等待软件内弹窗无感更新，或下载 .msi / .exe 覆盖安装。
+            - macOS 用户：请下载 .dmg 文件。
+            ⚠️ macOS 提示“应用已损坏”怎么办？
+            因为这是开源免费软件，未经过苹果高昂的付费签名。请将应用拖入「应用程序」文件夹后，打开「终端」并运行以下命令解锁：
+            `sudo xattr -rd com.apple.quarantine /Applications/Momentary.app`
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -1,25 +1,31 @@
 use std::sync::Mutex;
 use tauri::{App, Manager};
 
-#[allow(unused_variables)]
-// 🌟 1. 终极必杀：macOS 原生 NSWindow 透明化
+#[allow(unused_variables)] // 仅保留这个，因为在 Windows 编译时 app 确实没被用到
 pub fn fix_mac_transparent_window(app: &App) {
     #[cfg(target_os = "macos")]
     {
-        use cocoa::appkit::{NSColor, NSWindow};
-        use cocoa::base::{id, nil};
+        // 引入全新的 objc2 库宏和运行时类型
+        use objc2::{class, msg_send, sel};
+        use objc2::runtime::AnyObject;
 
-        // 将需要去掉白底的透明窗口列出来
         let window_labels = ["fab", "tray", "main"];
 
         for label in window_labels {
             if let Some(window) = app.get_webview_window(label) {
-                let ns_window = window.ns_window().unwrap() as id;
+                // Tauri 吐出的是 c_void 裸指针，我们把它转换为 objc2 认识的 AnyObject 指针
+                let ns_window = window.ns_window().unwrap() as *mut AnyObject;
+
                 unsafe {
-                    // 彻底清除背景色，并禁止系统垫白板
-                    let clear_color = NSColor::clearColor(nil);
-                    ns_window.setBackgroundColor_(clear_color);
-                    ns_window.setOpaque_(cocoa::base::NO);
+                    // 等价于 OC 代码: NSColor *clearColor = [NSColor clearColor];
+                    let ns_color_class = class!(NSColor);
+                    let clear_color: *mut AnyObject = msg_send![ns_color_class, clearColor];
+
+                    // 等价于 OC 代码: [nsWindow setBackgroundColor:clearColor];
+                    let _: () = msg_send![ns_window, setBackgroundColor: clear_color];
+
+                    // 等价于 OC 代码: [nsWindow setOpaque:NO];
+                    let _: () = msg_send![ns_window, setOpaque: false];
                 }
             }
         }
