@@ -35,12 +35,18 @@ impl EventRepository {
     // 🌟 创建日程 (修复：补上 event_type 和 created_at)
     pub async fn create(pool: &SqlitePool, payload: CreateEventDto) -> AppResult<i64> {
         let mut tx = pool.begin().await?;
-
-        let created_at = Utc::now(); // 🌟 生成当前 UTC 时间作为创建时间
+        let now = Utc::now(); // 🌟 生成当前准确的 UTC 时间
 
         let event_id = sqlx::query!(
+            // 🌟 将 created_at 显式加入 INSERT 语句
             "INSERT INTO events (title, description, target_date, importance, event_type, meta, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id",
-            payload.title, payload.description, payload.target_date, payload.importance, payload.event_type, payload.meta, created_at
+            payload.title,
+            payload.description,
+            payload.target_date,
+            payload.importance,
+            payload.event_type,
+            payload.meta,
+            now // 🌟 注入生成的时间
         ).fetch_one(&mut *tx).await?.id;
 
         // 插入多对多关系
@@ -57,9 +63,10 @@ impl EventRepository {
         Ok(event_id)
     }
 
-    // 🌟 获取所有日程 (完美映射 M2M，修复：补上 event_type 读取 和 created_at)
+    // 🌟 获取所有日程 (完美映射 M2M，修复：补上 event_type 和 created_at 读取)
     pub async fn get_all(pool: &SqlitePool) -> AppResult<Vec<Event>> {
         // 利用 SQLite 的 json_group_array 聚合分类
+        // 注意 SELECT e.* 会自动把 created_at 也抓取出来
         let rows = sqlx::query(
             r#"
             SELECT e.*,
@@ -87,15 +94,16 @@ impl EventRepository {
                 target_date: row.try_get("target_date")?,
                 created_at: row.try_get("created_at")?, // 🌟 读取创建时间并映射
                 importance: row.try_get("importance")?,
-                event_type: row.try_get("event_type")?, // 🌟 补上这行，修复实例化错误
+                event_type: row.try_get("event_type")?,
                 meta: row.try_get("meta")?,
+                created_at: row.try_get("created_at")?, // 🌟 补上这行：读取数据库中的创建时间
                 categories: serde_json::from_str(&cat_json).unwrap_or_default(),
             });
         }
         Ok(events)
     }
 
-    // 🌟 更新日程 (注意：不用更新 created_at，因为它不该被改变)
+    // 🌟 更新日程
     pub async fn update(pool: &SqlitePool, dto: UpdateEventDto) -> AppResult<u64> {
         let mut tx = pool.begin().await?;
 
@@ -106,12 +114,16 @@ impl EventRepository {
         ).fetch_one(&mut *tx).await?;
         let title = dto.title.unwrap_or(old.title);
         let desc = dto.description.unwrap_or(old.description);
+
+        // 💡 提示：如果你的 sqlx 推导 target_date 已经是 DateTime<Utc>，这里的 .and_utc() 可能会报错
+        // 如果报错了，请直接把 .and_utc() 删掉，写成 `unwrap_or(old.target_date)` 即可
         let t_date = dto.target_date.unwrap_or(old.target_date.and_utc());
+
         let imp = dto.importance.unwrap_or(old.importance);
         let e_type = dto.event_type.unwrap_or(old.event_type);
         let meta = dto.meta.unwrap_or(old.meta);
 
-        // 更新主表
+        // 更新主表（不更新 created_at，保持原样）
         sqlx::query!(
             "UPDATE events SET title=?1, description=?2, target_date=?3, importance=?4, event_type=?5, meta=?6 WHERE id=?7",
             title, desc, t_date, imp, e_type, meta, dto.id

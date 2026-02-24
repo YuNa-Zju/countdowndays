@@ -10,7 +10,7 @@ export interface AppEvent {
   description: string;
   target_date: string;
   importance: number;
-  created_at: string;
+  created_at: string; // 🌟 新增创建时间字段
   meta: string;
   categories: Category[];
   event_type: "task" | "anniversary"; // 🌟 新增类型区分

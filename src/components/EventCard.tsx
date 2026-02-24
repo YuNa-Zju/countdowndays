@@ -31,9 +31,7 @@ export default function EventCard({ event }: EventCardProps) {
 
   const today = startOfDay(new Date());
   const originalTarget = startOfDay(new Date(event.target_date));
-
-  // 🌟 修复点 1：增加数据兼容性保护（Fallback）
-  // 如果旧数据没有 created_at，默认取今天，避免 new Date(undefined) 产生 NaN 导致白屏
+  // 读取真实创建时间（带 fallback 防止报错）
   const createdAt = event.created_at
     ? startOfDay(new Date(event.created_at))
     : today;
@@ -45,7 +43,7 @@ export default function EventCard({ event }: EventCardProps) {
   let prefixText = "";
   let elapsedText = "";
   let targetDisplayDate = originalTarget;
-  let progressPercentage = 0; // 🌟 进度条百分比变量
+  let progressPercentage = 0; // 进度条百分比
 
   if (isAnniversary) {
     if (isBefore(originalTarget, today) || isSameDay(originalTarget, today)) {
@@ -60,24 +58,14 @@ export default function EventCard({ event }: EventCardProps) {
     prefixText = "NEXT";
     targetDisplayDate = nextAnniv;
 
-    // 🌟 修复点 2：计算纪念日一整年的动态进度条
-    const lastAnniv = setYear(nextAnniv, nextAnniv.getFullYear() - 1);
-    const totalYearDays = differenceInDays(nextAnniv, lastAnniv); // 通常是 365 或 366天
-    const daysPassed = differenceInDays(today, lastAnniv);
-
-    if (totalYearDays <= 0) {
-      progressPercentage = 100;
-    } else {
-      progressPercentage = (daysPassed / totalYearDays) * 100;
-      progressPercentage = Math.max(0, Math.min(100, progressPercentage));
-    }
+    // 纪念日进度条：按原来一样的 365 天倒数算法
+    progressPercentage = ((365 - displayDays) / 365) * 100;
   } else {
     isPast =
       isBefore(originalTarget, today) && !isSameDay(originalTarget, today);
     displayDays = Math.abs(differenceInDays(originalTarget, today));
     prefixText = isPast ? "PAST" : "LEFT";
 
-    // 🌟 计算任务的真实进度条
     if (isPast) {
       progressPercentage = 100;
       useEffect(() => {
@@ -85,17 +73,20 @@ export default function EventCard({ event }: EventCardProps) {
         return () => clearTimeout(timer);
       }, []);
     } else {
+      // 🌟 任务进度条：(今天 - 创建时间) / (目标时间 - 创建时间)
       const totalDuration = differenceInDays(originalTarget, createdAt);
       const daysPassed = differenceInDays(today, createdAt);
+
       if (totalDuration <= 0) {
         progressPercentage = 100;
       } else {
         progressPercentage = (daysPassed / totalDuration) * 100;
-        progressPercentage = Math.max(0, Math.min(100, progressPercentage)); // 限制在 0-100 之间
       }
     }
   }
 
+  // 限制进度条显示范围在 5% - 100% 之间，保证 UI 美观
+  const finalProgress = Math.max(5, Math.min(100, progressPercentage));
   const importanceColor = `hsl(348, ${50 + (event.importance * 10) / 2}%, ${65 - (event.importance * 10) / 3}%)`;
 
   return (
@@ -105,7 +96,7 @@ export default function EventCard({ event }: EventCardProps) {
         ${isAnniversary ? "bg-info/10 hover:bg-info/15" : "bg-warning/10 hover:bg-warning/15"}`}
     >
       <div className="card-body p-5 flex flex-col flex-1">
-        {/* 🌟 顶部：类型胶囊、自定义标签与操作 */}
+        {/* 顶部：类型胶囊、自定义标签与操作 */}
         <div className="flex justify-between items-start mb-4 gap-2">
           <div className="flex flex-wrap gap-2 flex-1 items-center">
             {/* 主类型标签 */}
@@ -139,17 +130,24 @@ export default function EventCard({ event }: EventCardProps) {
           </button>
         </div>
 
-        {/* 🌟 加入了 title={event.title}，配合 line-clamp-1 实现截断与悬停提示 */}
-        <h2
-          className="card-title text-3xl font-black text-base-content tracking-tight line-clamp-1 mb-2"
-          title={event.title}
-        >
-          {event.title}
-        </h2>
+        {/* 🌟 标题与自定义悬停浮窗 */}
+        <div className="relative group/title mb-2 w-full">
+          {/* break-all 解决 123123 这种长串数字不换行的问题，line-clamp-1 做单行截断 */}
+          <h2 className="text-3xl font-black text-base-content tracking-tight line-clamp-1 break-all cursor-default">
+            {event.title}
+          </h2>
+
+          {/* 漂亮的自定义浮窗：毛玻璃、阴影、滑入动画、长文本自动断行 */}
+          <div className="absolute z-50 left-0 bottom-full mb-1 pointer-events-none opacity-0 group-hover/title:opacity-100 transition-all duration-300 translate-y-2 group-hover/title:translate-y-0">
+            <div className="w-max max-w-65 bg-base-content/95 backdrop-blur-xl text-base-100 text-[13px] font-bold py-2.5 px-4 rounded-2xl shadow-2xl break-all whitespace-normal leading-relaxed border border-base-100/10">
+              {event.title}
+            </div>
+          </div>
+        </div>
 
         {event.description && (
           <div className="mb-2">
-            <p className="text-base text-base-content/60 line-clamp-2 leading-relaxed">
+            <p className="text-base text-base-content/60 line-clamp-2 leading-relaxed break-all">
               {renderDescription(event.description)}
             </p>
             {event.description.length > 25 && (
@@ -202,8 +200,7 @@ export default function EventCard({ event }: EventCardProps) {
             <motion.div
               initial={{ width: 0 }}
               animate={{
-                // 🌟 修复点 3：统一使用计算好的百分比，不再判断 isAnniversary 强行给 100%
-                width: `${Math.max(5, progressPercentage)}%`,
+                width: `${finalProgress}%`,
               }}
               style={{ backgroundColor: importanceColor }}
               className="h-full rounded-full transition-all duration-1000"

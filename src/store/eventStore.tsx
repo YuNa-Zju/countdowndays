@@ -21,11 +21,18 @@ export const useEventStore = create<EventState>((set, get) => ({
 
   fetchData: async () => {
     try {
-      // 通过 API 并发获取数据，管它是 Mock 还是 Rust，这里一概不管！
-      const [events, categories] = await Promise.all([
+      const [rawEvents, categories] = await Promise.all([
         api.getAllEvents(),
         api.getAllCategories(),
       ]);
+
+      // 🌟 终极防线：无论数据来自 Rust 还是 Mock，强制清洗一遍
+      // 保证所有被 React 渲染的事件都有合法的 ISO 字符串格式的创建时间
+      const events = rawEvents.map((e) => ({
+        ...e,
+        created_at: e.created_at || new Date().toISOString(),
+      }));
+
       console.log("✅ 成功拿回数据:", events, categories);
       set({ events, categories });
     } catch (error) {
@@ -50,7 +57,6 @@ export const useEventStore = create<EventState>((set, get) => ({
         id: newId,
         user_id: null,
         categories: selectedCats,
-        // 🌟 修复：手动补上 created_at 字段，使用 ISO 格式完美模拟后端的 UTC 时间字符串
         created_at: new Date().toISOString(),
       };
 

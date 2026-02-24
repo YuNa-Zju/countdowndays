@@ -18,7 +18,7 @@ pub struct Event {
     pub target_date: DateTime<Utc>,
     pub importance: i64,
     pub meta: String,
-    pub created_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>, // 🌟 新增创建时间字段
     pub categories: Vec<Category>, // 多对多：返回分类数组
     pub event_type: String,
 }

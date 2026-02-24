@@ -30,14 +30,20 @@ const defaultEvents: AppEvent[] = [
   },
 ];
 
-// 初始化读取
-let mockCategories: Category[] =
-  JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || "null") ||
-  defaultCategories;
-let mockEvents: AppEvent[] =
+// 🌟 1. 初始读取旧数据
+let rawMockEvents: any[] =
   JSON.parse(localStorage.getItem(STORAGE_KEY_EVENTS) || "null") ||
   defaultEvents;
 
+let mockCategories: Category[] =
+  JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || "null") ||
+  defaultCategories;
+
+// 🌟 2. 核心防御：遍历并清洗旧数据，如果缺少 created_at，直接赋予当前时间
+let mockEvents: AppEvent[] = rawMockEvents.map((e) => ({
+  ...e,
+  created_at: e.created_at || new Date().toISOString(),
+}));
 const saveMockData = () => {
   localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(mockCategories));
   localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(mockEvents));
@@ -75,8 +81,8 @@ const api = {
           ...dto,
           id: newId,
           user_id: null,
-          categories: selectedCats,
           created_at: new Date().toISOString(),
+          categories: selectedCats,
         },
         ...mockEvents,
       ];
