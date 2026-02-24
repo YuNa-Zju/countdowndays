@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   MoreHorizontal,
@@ -16,7 +16,7 @@ import {
   intervalToDuration,
 } from "date-fns";
 import { useUiBus } from "../store/uiBus";
-import { useEventStore } from "../store/eventStore";
+// import { useEventStore } from "../store/eventStore";
 import { AppEvent } from "../types";
 // 复用刚才写好的解析器
 import renderDescription from "../utils/textUtils";
@@ -135,7 +135,7 @@ export default function EventCard({ event }: EventCardProps) {
           </h2>
 
           <div className="absolute z-50 left-0 bottom-full mb-1 pointer-events-none opacity-0 group-hover/title:opacity-100 transition-all duration-300 translate-y-2 group-hover/title:translate-y-0">
-            <div className="w-max max-w-[260px] bg-base-content/95 backdrop-blur-xl text-base-100 text-[13px] font-bold py-2.5 px-4 rounded-2xl shadow-2xl break-all whitespace-normal leading-relaxed border border-base-100/10">
+            <div className="w-max max-w-65 bg-base-content/95 backdrop-blur-xl text-base-100 text-[13px] font-bold py-2.5 px-4 rounded-2xl shadow-2xl break-all whitespace-normal leading-relaxed border border-base-100/10">
               {event.title}
             </div>
           </div>
