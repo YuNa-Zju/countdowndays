@@ -31,6 +31,8 @@ export default function EventCard({ event }: EventCardProps) {
 
   const today = startOfDay(new Date());
   const originalTarget = startOfDay(new Date(event.target_date));
+  const createdAt = startOfDay(new Date(event.created_at)); // 🌟 引入真实的创建时间
+
   const isAnniversary = event.event_type === "anniversary";
 
   let displayDays = 0;
@@ -38,6 +40,7 @@ export default function EventCard({ event }: EventCardProps) {
   let prefixText = "";
   let elapsedText = "";
   let targetDisplayDate = originalTarget;
+  let progressPercentage = 0; // 🌟 进度条百分比变量
 
   if (isAnniversary) {
     if (isBefore(originalTarget, today) || isSameDay(originalTarget, today)) {
@@ -51,16 +54,29 @@ export default function EventCard({ event }: EventCardProps) {
     displayDays = differenceInDays(nextAnniv, today);
     prefixText = "NEXT";
     targetDisplayDate = nextAnniv;
+    progressPercentage = 100; // 纪念日默认进度条满格（或你可以根据需要调整）
   } else {
     isPast =
       isBefore(originalTarget, today) && !isSameDay(originalTarget, today);
     displayDays = Math.abs(differenceInDays(originalTarget, today));
     prefixText = isPast ? "PAST" : "LEFT";
+
+    // 🌟 计算任务的真实进度条
     if (isPast) {
+      progressPercentage = 100;
       useEffect(() => {
         const timer = setTimeout(() => deleteEventOptimistic(event.id), 2000);
         return () => clearTimeout(timer);
       }, []);
+    } else {
+      const totalDuration = differenceInDays(originalTarget, createdAt);
+      const daysPassed = differenceInDays(today, createdAt);
+      if (totalDuration <= 0) {
+        progressPercentage = 100;
+      } else {
+        progressPercentage = (daysPassed / totalDuration) * 100;
+        progressPercentage = Math.max(0, Math.min(100, progressPercentage)); // 限制在 0-100 之间
+      }
     }
   }
 
@@ -84,7 +100,7 @@ export default function EventCard({ event }: EventCardProps) {
               {isAnniversary ? "Anniversary" : "Task"}
             </span>
 
-            {/* 🌟 自定义分类标签 (移到了这里并加强了样式) */}
+            {/* 自定义分类标签 */}
             {event.categories.map((c) => (
               <span
                 key={c.id}
@@ -107,7 +123,11 @@ export default function EventCard({ event }: EventCardProps) {
           </button>
         </div>
 
-        <h2 className="card-title text-3xl font-black text-base-content tracking-tight line-clamp-1 mb-2">
+        {/* 🌟 修复点 1：加入了 title={event.title}，配合 line-clamp-1 实现截断与悬停提示 */}
+        <h2
+          className="card-title text-3xl font-black text-base-content tracking-tight line-clamp-1 mb-2"
+          title={event.title}
+        >
           {event.title}
         </h2>
 
@@ -154,7 +174,7 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
         </div>
 
-        {/* 🌟 底部对齐的进度条与日期 (移除旧标签后重新排版) */}
+        {/* 底部对齐的进度条与日期 */}
         <div className="mt-5 space-y-2">
           <div className="flex justify-end items-center">
             <span className="text-xs font-black opacity-40 whitespace-nowrap tracking-wider">
@@ -166,7 +186,10 @@ export default function EventCard({ event }: EventCardProps) {
             <motion.div
               initial={{ width: 0 }}
               animate={{
-                width: `${Math.max(5, ((365 - displayDays) / 365) * 100)}%`,
+                // 🌟 修复点 2：使用计算好的实际百分比，而不是定死的 365 天
+                width: isAnniversary
+                  ? "100%"
+                  : `${Math.max(5, progressPercentage)}%`,
               }}
               style={{ backgroundColor: importanceColor }}
               className="h-full rounded-full transition-all duration-1000"

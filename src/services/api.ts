@@ -23,6 +23,7 @@ const defaultEvents: AppEvent[] = [
     description: "搞定前端样式，连通 Rust 后端。",
     target_date: "2026-03-01T12:00:00.000Z",
     importance: 9,
+    created_at: "2026-02-01T12:00:00.000Z", // 🌟 添加创建时间
     event_type: "task",
     meta: "{}",
     categories: [defaultCategories[0]],
@@ -70,7 +71,13 @@ const api = {
         .map((id) => mockCategories.find((c) => c.id === id)!)
         .filter(Boolean);
       mockEvents = [
-        { ...dto, id: newId, user_id: null, categories: selectedCats },
+        {
+          ...dto,
+          id: newId,
+          user_id: null,
+          categories: selectedCats,
+          created_at: new Date().toISOString(),
+        },
         ...mockEvents,
       ];
       saveMockData(); // 🌟 保存

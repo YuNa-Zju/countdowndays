@@ -44,11 +44,14 @@ export const useEventStore = create<EventState>((set, get) => ({
       const selectedCats = dto.category_ids
         .map((id) => allCats.find((c) => c.id === id)!)
         .filter(Boolean);
+
       const newEvent: AppEvent = {
         ...dto,
         id: newId,
         user_id: null,
         categories: selectedCats,
+        // 🌟 修复：手动补上 created_at 字段，使用 ISO 格式完美模拟后端的 UTC 时间字符串
+        created_at: new Date().toISOString(),
       };
 
       set((state) => ({ events: [newEvent, ...state.events] }));

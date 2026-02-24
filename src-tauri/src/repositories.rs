@@ -1,5 +1,6 @@
 use crate::errors::AppResult;
 use crate::models::{Category, CreateEventDto, Event, UpdateEventDto};
+use chrono::Utc; // 🌟 新增：引入 Utc 以获取当前时间
 use serde_json;
 use sqlx::{Row, SqlitePool};
 
@@ -31,12 +32,15 @@ impl EventRepository {
         Ok(rec.id)
     }
 
-    // 🌟 创建日程 (修复：补上 event_type)
+    // 🌟 创建日程 (修复：补上 event_type 和 created_at)
     pub async fn create(pool: &SqlitePool, payload: CreateEventDto) -> AppResult<i64> {
         let mut tx = pool.begin().await?;
+
+        let created_at = Utc::now(); // 🌟 生成当前 UTC 时间作为创建时间
+
         let event_id = sqlx::query!(
-            "INSERT INTO events (title, description, target_date, importance, event_type, meta) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id",
-            payload.title, payload.description, payload.target_date, payload.importance, payload.event_type, payload.meta
+            "INSERT INTO events (title, description, target_date, importance, event_type, meta, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id",
+            payload.title, payload.description, payload.target_date, payload.importance, payload.event_type, payload.meta, created_at
         ).fetch_one(&mut *tx).await?.id;
 
         // 插入多对多关系
@@ -53,7 +57,7 @@ impl EventRepository {
         Ok(event_id)
     }
 
-    // 🌟 获取所有日程 (完美映射 M2M，修复：补上 event_type 读取)
+    // 🌟 获取所有日程 (完美映射 M2M，修复：补上 event_type 读取 和 created_at)
     pub async fn get_all(pool: &SqlitePool) -> AppResult<Vec<Event>> {
         // 利用 SQLite 的 json_group_array 聚合分类
         let rows = sqlx::query(
@@ -81,6 +85,7 @@ impl EventRepository {
                 title: row.try_get("title")?,
                 description: row.try_get("description")?,
                 target_date: row.try_get("target_date")?,
+                created_at: row.try_get("created_at")?, // 🌟 读取创建时间并映射
                 importance: row.try_get("importance")?,
                 event_type: row.try_get("event_type")?, // 🌟 补上这行，修复实例化错误
                 meta: row.try_get("meta")?,
@@ -90,7 +95,7 @@ impl EventRepository {
         Ok(events)
     }
 
-    // 🌟 更新日程 (修复：之前你把这个方法完全漏掉了！)
+    // 🌟 更新日程 (注意：不用更新 created_at，因为它不该被改变)
     pub async fn update(pool: &SqlitePool, dto: UpdateEventDto) -> AppResult<u64> {
         let mut tx = pool.begin().await?;
 
