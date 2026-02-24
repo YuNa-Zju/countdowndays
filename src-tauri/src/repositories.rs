@@ -96,7 +96,6 @@ impl EventRepository {
                 importance: row.try_get("importance")?,
                 event_type: row.try_get("event_type")?,
                 meta: row.try_get("meta")?,
-                created_at: row.try_get("created_at")?, // 🌟 补上这行：读取数据库中的创建时间
                 categories: serde_json::from_str(&cat_json).unwrap_or_default(),
             });
         }
