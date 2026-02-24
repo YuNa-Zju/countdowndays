@@ -1,6 +1,5 @@
-import { Search, Minus, Square, X, User } from "lucide-react";
+import { Search, Minus, Square, X } from "lucide-react";
 import { useUiBus } from "../store/uiBus";
-import ThemeToggle from "./ThemeToggle";
 import { usePlatform } from "../hooks/usePlatform";
 // Tauri v1 的 API (如果报错找不到 window，请先运行 npm install @tauri-apps/api)
 import { getCurrentWindow } from "@tauri-apps/api/window";

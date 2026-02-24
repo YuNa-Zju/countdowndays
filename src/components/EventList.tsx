@@ -96,7 +96,7 @@ export default function EventList() {
                   key={categoryName}
                   className={`group collapse collapse-arrow w-full overflow-hidden
                   bg-primary/15 rounded-[2.5rem] border border-transparent
-                  has-[:checked]:bg-base-100 has-[:checked]:border-base-200/60 has-[:checked]:shadow-sm
+                  has-checked:bg-base-100 has-checked:border-base-200/60 has-checked:shadow-sm
                   ${appleSmoothTransition}`}
                 >
                   <input
@@ -106,18 +106,18 @@ export default function EventList() {
                   />
 
                   <div
-                    className={`collapse-title relative min-h-[4.5rem] ${appleSmoothTransition}`}
+                    className={`collapse-title relative min-h-18 ${appleSmoothTransition}`}
                   >
                     <div
-                      className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-3 w-max left-1/2 -translate-x-1/2 scale-105 group-has-[:checked]:left-6 group-has-[:checked]:translate-x-0 group-has-[:checked]:scale-100 ${appleSmoothTransition}`}
+                      className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-3 w-max left-1/2 -translate-x-1/2 scale-105 group-has-checked:left-6 group-has-checked:translate-x-0 group-has-checked:scale-100 ${appleSmoothTransition}`}
                     >
                       <span
-                        className={`font-black tracking-widest text-primary group-has-[:checked]:bg-primary/10 group-has-[:checked]:px-5 group-has-[:checked]:py-1.5 group-has-[:checked]:rounded-full ${appleSmoothTransition}`}
+                        className={`font-black tracking-widest text-primary group-has-checked:bg-primary/10 group-has-checked:px-5 group-has-checked:py-1.5 group-has-checked:rounded-full ${appleSmoothTransition}`}
                       >
                         {categoryName}
                       </span>
                       <span
-                        className={`font-medium whitespace-nowrap text-primary/60 text-sm group-has-[:checked]:text-base-content/40 group-has-[:checked]:text-xs ${appleSmoothTransition}`}
+                        className={`font-medium whitespace-nowrap text-primary/60 text-sm group-has-checked:text-base-content/40 group-has-checked:text-xs ${appleSmoothTransition}`}
                       >
                         共 {catEvents.length} 个日子
                       </span>
@@ -126,7 +126,7 @@ export default function EventList() {
 
                   <div className={`collapse-content ${appleSmoothTransition}`}>
                     <div
-                      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 pb-2 border-t border-transparent group-has-[:checked]:border-base-200/50 ${appleSmoothTransition}`}
+                      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 pb-2 border-t border-transparent group-has-checked:border-base-200/50 ${appleSmoothTransition}`}
                     >
                       {/* 🌟 核心修复 2：分组视图内部的删除动画 */}
                       <AnimatePresence mode="popLayout">

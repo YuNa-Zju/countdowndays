@@ -139,7 +139,7 @@ export default function UserMenu() {
               >
                 {/* 开关滑块小白圆点 */}
                 <div
-                  className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
                     autoCheckUpdate ? "translate-x-5" : "translate-x-0"
                   }`}
                 ></div>
