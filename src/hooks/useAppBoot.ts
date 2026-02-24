@@ -117,7 +117,14 @@ export function useAppBoot() {
     const appWindow = getCurrentWindow();
 
     if (appWindow.label === "main") {
-      const unlistenDb = listen("db-ready", () => {
+      // 🌟 1. 进门先主动拉取一次（解决错过信号的问题）
+      // 哪怕数据库还没完全 Ready，fetchData 内部的 invoke 也会排队或报错，总比死等强
+      console.log("🚀 主窗口尝试主动拉取数据...");
+      fetchData();
+
+      // 🌟 2. 依然保留监听逻辑，作为双重保险
+      const unlistenDbPromise = listen("db-ready", () => {
+        console.log("📢 收到 db-ready 信号，同步最新数据");
         fetchData();
       });
 
@@ -143,7 +150,8 @@ export function useAppBoot() {
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
         window.removeEventListener("contextmenu", handleContextMenu);
-        unlistenDb.then((f) => f());
+        // 🌟 3. 正确清理异步的 Tauri 监听器
+        unlistenDbPromise.then((unlisten) => unlisten());
       };
     }
   }, [fetchData]);

@@ -1,8 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { AppEvent, Category, CreateEventDto, UpdateEventDto } from "../types";
 
-const IS_MOCK =
-  typeof window !== "undefined" && !("__TAURI_INTERNALS__" in window);
+const IS_MOCK = false;
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- LocalStorage 持久化逻辑 ---
@@ -46,6 +45,7 @@ const saveMockData = () => {
 
 const api = {
   async getAllEvents(): Promise<AppEvent[]> {
+    console.log(invoke<AppEvent[]>("get_all_events"));
     if (IS_MOCK) {
       await delay();
       return [...mockEvents];
@@ -54,6 +54,7 @@ const api = {
   },
 
   async getAllCategories(): Promise<Category[]> {
+    console.log(invoke<AppEvent[]>("get_all_categories"));
     if (IS_MOCK) {
       await delay();
       return [...mockCategories];

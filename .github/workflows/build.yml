@@ -83,7 +83,7 @@ jobs:
             因为这是开源免费软件，未经过苹果高昂的付费签名。请将应用拖入「应用程序」文件夹后，打开「终端」并运行以下命令解锁：
             `sudo xattr -rd com.apple.quarantine /Applications/Momentary.app`
 
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           # 🌟 猛药二：加上 -v 参数，强行让 Tauri 吐出所有底层打包细节
           args: ${{ matrix.args }} -v

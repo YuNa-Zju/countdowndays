@@ -26,6 +26,7 @@ export const useEventStore = create<EventState>((set, get) => ({
         api.getAllEvents(),
         api.getAllCategories(),
       ]);
+      console.log("✅ 成功拿回数据:", events, categories);
       set({ events, categories });
     } catch (error) {
       console.error("数据加载失败:", error);
