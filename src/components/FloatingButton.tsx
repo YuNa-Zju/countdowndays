@@ -7,7 +7,7 @@ export default function FloatingButton() {
   return (
     <button
       onClick={openCreateModal}
-      className="btn btn-primary btn-circle btn-lg fixed bottom-6 right-6 shadow-xl hover:scale-105 transition-transform border-4 border-base-100"
+      className="btn btn-primary btn-circle btn-lg fixed bottom-6 right-6 hover:scale-105 transition-transform border-4 border-base-100"
     >
       <Plus className="w-8 h-8" />
     </button>

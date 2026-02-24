@@ -4,13 +4,20 @@ import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
 import { check } from "@tauri-apps/plugin-updater";
-// 提取你定义好的 Theme 类型
+
 export type Theme =
   | "nord"
   | "dracula"
   | "system"
   | "pastel-light"
   | "pastel-dark";
+
+// ==========================================
+// 🌟 全局生命周期标志：
+// 一旦变成 true，除非用户在托盘右键彻底退出杀掉进程，否则绝不会再变回 false。
+// ==========================================
+let hasPromptedUpdateThisSession = false;
+let isCheckingUpdate = false;
 
 export function useAppBoot() {
   const { openCreateModal, theme } = useUiBus();
@@ -20,33 +27,40 @@ export function useAppBoot() {
     theme === "system" ? "pastel-light" : (theme as Exclude<Theme, "system">),
   );
 
-  // 🌟 后台静默检查更新 (仅限主窗口执行，防止悬浮窗和托盘重复检查)
-  useEffect(() => {
-    const checkUpdateSilently = async () => {
-      try {
-        const update = await check();
-        if (update) {
-          console.log(`🎉 发现新版本: ${update.version}`);
-          // 呼出我们华丽的旗舰弹窗，并把 update 对象传进去！
-          useUiBus.getState().openUpdateModal(update);
-        }
-      } catch (error) {
-        // 静默失败，不打扰用户
-        console.error("检查更新失败:", error);
-      }
-    };
-
-    if (getCurrentWindow().label === "main") {
-      checkUpdateSilently();
-    }
-  }, []);
-
   // ==========================================
-  // 1. 主窗口焦点监听 (仅 main 窗口需要)
+  // 1. 🌟 主窗口焦点监听 & 极简更新检查逻辑
   // ==========================================
   useEffect(() => {
     const appWindow = getCurrentWindow();
+
     if (appWindow.label === "main") {
+      const checkUpdateSilently = async () => {
+        if (!useUiBus.getState().autoCheckUpdate) {
+          return;
+        }
+        // 如果本次软件运行期间已经提示过，直接无视，哪怕被反复呼出
+        // （等我们一会儿加了开关，只需要在这里多加一个判断： if (!autoUpdate) return; 即可）
+        if (hasPromptedUpdateThisSession || isCheckingUpdate) return;
+
+        isCheckingUpdate = true;
+        try {
+          const update = await check();
+          if (update) {
+            console.log(`🎉 发现新版本: ${update.version}`);
+            hasPromptedUpdateThisSession = true; // 🌟 永久封印本轮弹窗
+            useUiBus.getState().openUpdateModal(update);
+          }
+        } catch (error) {
+          console.error("检查更新失败:", error);
+        } finally {
+          isCheckingUpdate = false;
+        }
+      };
+
+      // 软件刚启动时查一次
+      checkUpdateSilently();
+
+      // 监听焦点：每次唤醒窗口时尝试检查（如果还没弹过的话）
       const unlistenFocus = appWindow.onFocusChanged(
         async ({ payload: focused }) => {
           if (focused) {
@@ -54,9 +68,11 @@ export function useAppBoot() {
             if (fab) {
               await fab.hide();
             }
+            checkUpdateSilently();
           }
         },
       );
+
       return () => {
         unlistenFocus.then((f) => f());
       };
@@ -64,7 +80,7 @@ export function useAppBoot() {
   }, []);
 
   // ==========================================
-  // 2. 主题映射与系统偏好监听 (所有窗口都需要)
+  // 2. 主题映射与系统偏好监听
   // ==========================================
   useEffect(() => {
     if (theme === "system") {
@@ -82,12 +98,10 @@ export function useAppBoot() {
   }, [theme]);
 
   // ==========================================
-  // 3. 🌟 修复 Bug: 多窗口状态同步 (所有窗口都需要)
+  // 3. 多窗口状态同步
   // ==========================================
-  // 把 storage 监听器移出 main 判断，这样 tray 和 fab 也能监听到 localStorage 的变化了
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      // 当主页面修改了 zustand 的持久化存储时，这里会被触发
       if (e.key === "countdown-ui-storage") {
         useUiBus.persist.rehydrate();
       }
@@ -97,13 +111,12 @@ export function useAppBoot() {
   }, []);
 
   // ==========================================
-  // 4. 数据拉取、全局快捷键拦截 (仅 main 窗口需要)
+  // 4. 数据拉取、全局快捷键拦截
   // ==========================================
   useEffect(() => {
     const appWindow = getCurrentWindow();
 
     if (appWindow.label === "main") {
-      // 🌟 核心防闪退机制：等待 Rust 的 db-ready 信号才能发请求！
       const unlistenDb = listen("db-ready", () => {
         fetchData();
       });
@@ -130,14 +143,13 @@ export function useAppBoot() {
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
         window.removeEventListener("contextmenu", handleContextMenu);
-        // 记得清理事件监听
         unlistenDb.then((f) => f());
       };
     }
   }, [fetchData]);
 
   // ==========================================
-  // 5. 唤醒主窗口并创建 (仅 main 窗口需要)
+  // 5. 唤醒主窗口并创建
   // ==========================================
   useEffect(() => {
     if (getCurrentWindow().label === "main") {

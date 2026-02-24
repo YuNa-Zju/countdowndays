@@ -49,6 +49,8 @@ interface UiState {
   noteModalContent: { title: string; description: string } | null;
   openNoteModal: (title: string, description: string) => void;
   closeNoteModal: () => void;
+  autoCheckUpdate: boolean;
+  setAutoCheckUpdate: (val: boolean) => void;
 
   // 🌟 3. 增加更新相关的方法签名
   openUpdateModal: (info: Update) => void;
@@ -72,6 +74,7 @@ export const useUiBus = create<UiState>()(
       // 🌟 4. 初始化更新状态
       isUpdateModalOpen: false,
       updateInfo: null,
+      autoCheckUpdate: true,
 
       openCmdk: () => set({ isCmdkOpen: true }),
       closeCmdk: () => set({ isCmdkOpen: false }),
@@ -125,6 +128,7 @@ export const useUiBus = create<UiState>()(
         set({ isUpdateModalOpen: true, updateInfo: update }),
       closeUpdateModal: () =>
         set({ isUpdateModalOpen: false, updateInfo: null }),
+      setAutoCheckUpdate: (val) => set({ autoCheckUpdate: val }),
     }),
     {
       name: "countdown-ui-storage",
@@ -132,6 +136,7 @@ export const useUiBus = create<UiState>()(
         theme: state.theme,
         viewMode: state.viewMode,
         expandedGroups: state.expandedGroups,
+        autoCheckUpdate: state.autoCheckUpdate,
       }),
     },
   ),
