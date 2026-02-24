@@ -82,3 +82,9 @@ pub fn toggle_fab(app: tauri::AppHandle, state: State<'_, Mutex<bool>>) -> bool 
     }
     new_state
 }
+
+#[tauri::command]
+pub async fn is_db_initialized(handle: tauri::AppHandle) -> bool {
+    // 检查 Tauri 是否已经接管了 SqlitePool
+    handle.try_state::<sqlx::SqlitePool>().is_some()
+}

@@ -203,7 +203,8 @@ fn main() {
             commands::delete_category,
             commands::wake_main_window,
             commands::get_fab_state,
-            commands::toggle_fab
+            commands::toggle_fab,
+            commands::is_db_initialized
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

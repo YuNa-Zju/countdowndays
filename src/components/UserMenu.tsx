@@ -1,157 +1,242 @@
-import { Settings, Moon, Sun, Monitor, Zap, CheckCircle2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import {
+  Settings,
+  Moon,
+  Sun,
+  Monitor,
+  Zap,
+  CheckCircle2,
+  Info,
+  RefreshCw,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useUiBus } from "../store/uiBus";
+import { getVersion } from "@tauri-apps/api/app";
+import { check } from "@tauri-apps/plugin-updater";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function UserMenu() {
-  const { theme, setTheme, autoCheckUpdate, setAutoCheckUpdate } = useUiBus();
+  const {
+    theme,
+    setTheme,
+    autoCheckUpdate,
+    setAutoCheckUpdate,
+    openUpdateModal,
+  } = useUiBus();
+  const [appVersion, setAppVersion] = useState<string>("0.0.0");
 
-  // 🌟 1. 创建一个引用，用来指向这个菜单
+  // 状态控制：更新检查中 | 已是最新
+  const [updateStatus, setUpdateStatus] = useState<
+    "idle" | "checking" | "latest"
+  >("idle");
+  const [showAbout, setShowAbout] = useState(false);
+
   const dropdownRef = useRef<HTMLDetailsElement>(null);
 
-  // 🌟 2. 添加全局点击监听：如果点的地方不在菜单里面，就强制关掉它
+  // 获取版本号
+  useEffect(() => {
+    getVersion().then(setAppVersion);
+  }, []);
+
+  // 🌟 1. 核心修复：监听 Esc 键关闭弹窗
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowAbout(false);
+    };
+    if (showAbout) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showAbout]);
+
+  // 点击外部收起菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // 检查 ref 是否存在，并且点击的目标 (event.target) 不在 dropdownRef 内部
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        // 强行移除 open 属性，菜单就会丝滑收起
         dropdownRef.current.removeAttribute("open");
       }
     };
-
-    // 监听鼠标按下事件
     document.addEventListener("mousedown", handleClickOutside);
-
-    // 组件卸载时记得清理监听器，防止内存泄漏
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  // 🌟 三态循环切换逻辑
+
+  // 🌟 2. 增强版手动检查更新逻辑
+  const handleManualCheck = async () => {
+    if (updateStatus !== "idle") return;
+
+    setUpdateStatus("checking");
+    try {
+      const update = await check();
+      if (update) {
+        openUpdateModal(update);
+        setUpdateStatus("idle");
+      } else {
+        // 无更新，展示反馈状态
+        setUpdateStatus("latest");
+        setTimeout(() => setUpdateStatus("idle"), 2500);
+      }
+    } catch (error) {
+      console.error("更新检查失败:", error);
+      setUpdateStatus("idle");
+    }
+  };
+
   const cycleTheme = () => {
     if (theme === "pastel-light") setTheme("pastel-dark");
     else if (theme === "pastel-dark") setTheme("system");
     else setTheme("pastel-light");
   };
 
-  const iconTransitionClass =
+  const iconClass =
     "absolute inset-0 m-auto w-5 h-5 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]";
 
   return (
-    <details ref={dropdownRef} className="dropdown dropdown-end font-sans">
-      {/* 触发按钮：干掉焦点轮廓 */}
-      <summary className="btn btn-ghost btn-circle m-1 hover:bg-base-200 transition-colors outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]">
-        <Settings className="w-5 h-5 text-base-content/70" />
-      </summary>
+    <>
+      <details ref={dropdownRef} className="dropdown dropdown-end font-sans">
+        <summary className="btn btn-ghost btn-circle m-1 hover:bg-base-200 outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]">
+          <Settings className="w-5 h-5 text-base-content/70" />
+        </summary>
 
-      <ul className="dropdown-content z-50 menu p-4 shadow-2xl bg-base-100/95 backdrop-blur-md rounded-2xl w-72 border border-base-200/50 mt-2 flex flex-col gap-2">
-        {/* --- 🌟 模块一：炫酷主题切换 --- */}
-        <li className="bg-base-200/50 rounded-xl overflow-hidden">
-          <button
-            onClick={cycleTheme}
-            className="flex items-center justify-between w-full p-3 h-14 hover:bg-base-200 transition-colors relative overflow-hidden group active:scale-[0.98] outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]"
-          >
-            <div className="flex flex-col items-start">
+        <ul className="dropdown-content z-50 menu p-2 shadow-2xl bg-base-100/95 backdrop-blur-md rounded-2xl w-64 border border-base-200/50 mt-2 flex flex-col gap-1">
+          {/* 条目一：主题切换 */}
+          <li>
+            <button
+              onClick={cycleTheme}
+              className="flex justify-between h-12 active:bg-base-200 group"
+            >
               <span className="font-bold text-sm">外观模式</span>
-              <span className="text-xs text-base-content/50 font-medium">
-                {theme === "pastel-light"
-                  ? "当前：浅色"
-                  : theme === "pastel-dark"
-                    ? "当前：深色"
-                    : "当前：跟随系统"}
-              </span>
-            </div>
-
-            <div className="relative w-10 h-10 bg-base-100 rounded-full shadow-sm group-hover:shadow-md transition-all border border-base-200 mr-1">
-              <Sun
-                className={`${iconTransitionClass} ${
-                  theme === "pastel-light"
-                    ? "opacity-100 rotate-0 scale-100 text-yellow-500"
-                    : "opacity-0 -rotate-90 scale-50 text-base-content/30"
-                }`}
-              />
-              <Moon
-                className={`${iconTransitionClass} ${
-                  theme === "pastel-dark"
-                    ? "opacity-100 rotate-0 scale-100 text-blue-400"
-                    : "opacity-0 rotate-90 scale-50 text-base-content/30"
-                }`}
-              />
-              <Monitor
-                className={`${iconTransitionClass} ${
-                  theme === "system"
-                    ? "opacity-100 rotate-0 scale-100 text-purple-400"
-                    : "opacity-0 rotate-180 scale-50 text-base-content/30"
-                }`}
-              />
-            </div>
-          </button>
-        </li>
-
-        <div className="divider my-1 opacity-20 px-2"></div>
-
-        {/* --- 🌟 模块二：显眼的更新开关 --- */}
-        <li className="bg-primary/5 rounded-xl border border-primary/10 overflow-hidden">
-          <label className="label cursor-pointer flex items-center justify-between w-full p-3 h-14 hover:bg-primary/10 transition-colors active:scale-[0.98] outline-none focus:outline-none [-webkit-tap-highlight-color:transparent]">
-            <div className="flex items-center gap-3">
-              <div
-                className={`p-2 rounded-full transition-colors ${
-                  autoCheckUpdate
-                    ? "bg-primary text-primary-content shadow-primary/30 shadow-lg"
-                    : "bg-base-300 text-base-content/40"
-                }`}
-              >
-                {autoCheckUpdate ? (
-                  <Zap className="w-4 h-4 animate-pulse" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4" />
-                )}
+              <div className="relative w-8 h-8 bg-base-200 rounded-full border border-base-300 group-hover:scale-110 transition-transform">
+                <Sun
+                  className={`${iconClass} ${theme === "pastel-light" ? "opacity-100 rotate-0 scale-100 text-yellow-500" : "opacity-0 -rotate-90 scale-50"}`}
+                />
+                <Moon
+                  className={`${iconClass} ${theme === "pastel-dark" ? "opacity-100 rotate-0 scale-100 text-blue-400" : "opacity-0 rotate-90 scale-50"}`}
+                />
+                <Monitor
+                  className={`${iconClass} ${theme === "system" ? "opacity-100 rotate-0 scale-100 text-purple-400" : "opacity-0 rotate-180 scale-50"}`}
+                />
               </div>
-              <div className="flex flex-col">
-                <span
-                  className={`font-bold text-sm transition-colors ${
-                    autoCheckUpdate ? "text-primary" : "text-base-content"
-                  }`}
-                >
-                  自动检查更新
-                </span>
-                <span className="text-xs text-base-content/50 font-medium">
-                  {autoCheckUpdate ? "启动时自动发现新版本" : "我想手动检查"}
-                </span>
-              </div>
-            </div>
+            </button>
+          </li>
 
-            {/* 🌟 核心修复：手搓纯 div 开关，彻底抛弃原生 input 的渲染 */}
-            <div className="relative inline-flex items-center ml-2">
-              <input
-                type="checkbox"
-                className="sr-only" // sr-only 会把它在视觉上彻底抹除，但保留点击功能
-                checked={autoCheckUpdate}
-                onChange={(e) => setAutoCheckUpdate(e.target.checked)}
-              />
-              {/* 开关背景槽 */}
-              <div
-                className={`w-11 h-6 rounded-full transition-colors duration-300 ease-in-out shadow-inner ${
-                  autoCheckUpdate ? "bg-primary" : "bg-base-300"
-                }`}
-              >
-                {/* 开关滑块小白圆点 */}
+          {/* 条目二：自动更新开关 */}
+          <li>
+            <label className="flex justify-between h-12 cursor-pointer active:bg-base-200">
+              <span className="font-bold text-sm">自动检查更新</span>
+              <div className="relative inline-flex items-center">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={autoCheckUpdate}
+                  onChange={(e) => setAutoCheckUpdate(e.target.checked)}
+                />
                 <div
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-                    autoCheckUpdate ? "translate-x-5" : "translate-x-0"
-                  }`}
-                ></div>
+                  className={`w-10 h-5 rounded-full transition-colors ${autoCheckUpdate ? "bg-primary" : "bg-base-300"}`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${autoCheckUpdate ? "translate-x-5" : "translate-x-0"}`}
+                  />
+                </div>
               </div>
-            </div>
-          </label>
-        </li>
+            </label>
+          </li>
 
-        <li className="text-[10px] text-center text-base-content/30 mt-1 font-medium tracking-widest uppercase">
-          Momentary Desktop
-        </li>
-      </ul>
-    </details>
+          <div className="divider my-0 opacity-10"></div>
+
+          {/* 条目三：检查更新 (动态状态反馈) */}
+          <li>
+            <button
+              onClick={handleManualCheck}
+              className="flex justify-between h-12 active:bg-base-200"
+            >
+              <div className="flex items-center gap-3">
+                <RefreshCw
+                  className={`w-4 h-4 text-base-content/50 ${updateStatus === "checking" ? "animate-spin" : ""}`}
+                />
+                <span className="text-sm font-medium">
+                  {updateStatus === "latest" ? "已是最新版本" : "检查更新"}
+                </span>
+              </div>
+              {updateStatus === "latest" && (
+                <CheckCircle2 className="w-4 h-4 text-success animate-in zoom-in" />
+              )}
+            </button>
+          </li>
+
+          {/* 条目四：关于 */}
+          <li>
+            <button
+              onClick={() => setShowAbout(true)}
+              className="flex gap-3 h-12 active:bg-base-200"
+            >
+              <Info className="w-4 h-4 text-base-content/50" />
+              <span className="text-sm font-medium">关于 Momentary</span>
+            </button>
+          </li>
+        </ul>
+      </details>
+
+      {/* --- 🌟 关于 Momentary 弹窗 (Modal) --- */}
+      <AnimatePresence>
+        {showAbout && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* 背景遮罩 */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAbout(false)}
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            />
+
+            {/* 弹窗主体 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-base-100 shadow-2xl rounded-[3rem] p-10 border border-base-200 flex flex-col items-center text-center"
+            >
+              <button
+                onClick={() => setShowAbout(false)}
+                className="absolute top-6 right-8 btn btn-ghost btn-circle btn-sm"
+              >
+                <X className="w-5 h-5 opacity-30" />
+              </button>
+
+              <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
+                <Zap className="w-10 h-10 text-primary" />
+              </div>
+
+              <h2 className="text-3xl font-black tracking-tighter mb-1">
+                Momentary
+              </h2>
+              <div className="badge badge-primary badge-outline font-mono font-bold mb-6">
+                v{appVersion}
+              </div>
+
+              <p className="text-sm text-base-content/60 leading-relaxed mb-10 px-4">
+                一款专注于优雅与宁静的倒数日管理工具。
+                <br />
+                每一刻的等待，都是为了更好的重逢。
+              </p>
+
+              <div className="w-full pt-6 border-t border-base-200 flex flex-col gap-1">
+                <div className="flex items-center justify-center gap-1.5 text-primary/40 mb-1">
+                  <span className="text-[10px] font-bold tracking-[0.3em] uppercase">
+                    Created by YuNa
+                  </span>
+                </div>
+                <span className="text-[9px] opacity-20 font-medium">
+                  © 2026 Momentary Studio
+                </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

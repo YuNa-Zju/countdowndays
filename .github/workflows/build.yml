@@ -2,9 +2,16 @@ name: Release Desktop App
 
 on:
   push:
+    branches:
+      - master # 🌟 master 分支 Push 时触发，用于预热缓存
     tags:
-      - "v*"
+      - "v*" # 🌟 推标签时触发，用于正式发布
   workflow_dispatch:
+
+# 🌟 自动取消正在进行的旧任务，节省资源
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -40,50 +47,34 @@ jobs:
       - name: 开启 Rust 魔法缓存
         uses: Swatinem/rust-cache@v2
         with:
-          # 告诉缓存插件，我们的 Cargo.toml 藏在 src-tauri 文件夹里
           workspaces: "src-tauri -> target"
 
       - name: Install frontend dependencies
         run: npm install
 
-      # 🌟 猛药一：在打包前，强行检查 GitHub 是否真的读到了你的私钥！
-      - name: 🕵️ 检查私钥是否成功注入 (Debug)
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.TAURI_PRIVATE_KEY }}" ]; then
-            echo "::error::🚨 致命错误：GitHub 完全没有读取到 TAURI_PRIVATE_KEY！请检查是否放在了 Settings -> Secrets -> Repository secrets 中。"
-            exit 1
-          else
-            echo "✅ 私钥变量已成功读取，准备注入打包流程！"
-          fi
+      # 🌟 核心逻辑判断：如果是 master 分支，只编译，不发布
+      - name: 🛠️ 仅编译 (master 分支预热缓存)
+        if: github.ref == 'refs/heads/master'
+        run: npm run tauri build -- ${{ matrix.args }}
+        env:
+          # 即使不发布，Tauri 编译带更新器的包也需要私钥
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
-      - name: Build and Release Tauri app
+      # 🌟 核心逻辑判断：如果是 v* 标签，执行正式发布
+      - name: 🚀 正式打包并发布 (Tag 触发)
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 🌟 只喂私钥，彻底抛弃密码
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: app-v__VERSION__
           releaseName: "Momentary v__VERSION__"
-
           releaseBody: |
             ✨ Momentary 桌面端全新版本发布！
-
-            **🚀 本次更新内容：**
-            ${{ github.event.head_commit.message }}
-
-            ---
-            📦 **下载说明：**
-            - **Windows 用户**：可以直接等待软件内弹窗无感更新，或下载 `.msi` / `.exe` 覆盖安装。
-            - **macOS 用户**：请下载 `.dmg` 文件。
-
-            ⚠️ **macOS 提示“应用已损坏”怎么办？**
-            因为这是开源免费软件，未经过苹果高昂的付费签名。请将应用拖入「应用程序」文件夹后，打开「终端」并运行以下命令解锁：
-            `sudo xattr -rd com.apple.quarantine /Applications/Momentary.app`
-
+            🚀 更新内容：${{ github.event.head_commit.message }}
           releaseDraft: false
           prerelease: false
-          # 🌟 猛药二：加上 -v 参数，强行让 Tauri 吐出所有底层打包细节
-          args: ${{ matrix.args }} -v
+          args: ${{ matrix.args }}

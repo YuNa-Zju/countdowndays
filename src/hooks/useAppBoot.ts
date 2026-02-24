@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useUiBus } from "../store/uiBus";
 import { useEventStore } from "../store/eventStore";
 import { getCurrentWindow, Window } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { check } from "@tauri-apps/plugin-updater";
 
 export type Theme =
@@ -117,17 +118,33 @@ export function useAppBoot() {
     const appWindow = getCurrentWindow();
 
     if (appWindow.label === "main") {
-      // 🌟 1. 进门先主动拉取一次（解决错过信号的问题）
-      // 哪怕数据库还没完全 Ready，fetchData 内部的 invoke 也会排队或报错，总比死等强
-      console.log("🚀 主窗口尝试主动拉取数据...");
-      fetchData();
+      // 🌟 1. 核心逻辑：定义如何安全地拿数据
+      const initializeData = async () => {
+        try {
+          // 先问问后端：数据库初始化好了吗？
+          const isReady = await invoke<boolean>("is_db_initialized");
 
-      // 🌟 2. 依然保留监听逻辑，作为双重保险
+          if (isReady) {
+            console.log("✅ 数据库已就绪，直接拉取数据");
+            await fetchData();
+          } else {
+            console.log("⏳ 数据库连接中，等待信号...");
+          }
+        } catch (error) {
+          // 如果命令本身还没注册，这里会报错，没关系，等信号即可
+        }
+      };
+
+      // 启动或刷新时，先自查一次
+      initializeData();
+
+      // 🌟 2. 信号补位：如果自查时还没好，等这个信号
       const unlistenDbPromise = listen("db-ready", () => {
-        console.log("📢 收到 db-ready 信号，同步最新数据");
+        console.log("📢 收到 db-ready 信号，开始拉取数据");
         fetchData();
       });
 
+      // --- 下面是原来的快捷键逻辑 ---
       const handleKeyDown = (e: KeyboardEvent) => {
         if (
           e.key === "F5" ||
@@ -137,11 +154,8 @@ export function useAppBoot() {
           e.preventDefault();
         }
       };
-
       const handleContextMenu = (e: MouseEvent) => {
-        if (import.meta.env.PROD) {
-          e.preventDefault();
-        }
+        if (import.meta.env.PROD) e.preventDefault();
       };
 
       window.addEventListener("keydown", handleKeyDown);
@@ -150,7 +164,6 @@ export function useAppBoot() {
       return () => {
         window.removeEventListener("keydown", handleKeyDown);
         window.removeEventListener("contextmenu", handleContextMenu);
-        // 🌟 3. 正确清理异步的 Tauri 监听器
         unlistenDbPromise.then((unlisten) => unlisten());
       };
     }
