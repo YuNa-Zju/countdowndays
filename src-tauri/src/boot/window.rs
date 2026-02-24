@@ -6,7 +6,7 @@ pub fn fix_mac_transparent_window(app: &App) {
     #[cfg(target_os = "macos")]
     {
         // 引入全新的 objc2 库宏和运行时类型
-        use objc2::{class, msg_send, sel};
+        use objc2::{class, msg_send};
         use objc2::runtime::AnyObject;
 
         let window_labels = ["fab", "tray", "main"];
