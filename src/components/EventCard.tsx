@@ -31,7 +31,12 @@ export default function EventCard({ event }: EventCardProps) {
 
   const today = startOfDay(new Date());
   const originalTarget = startOfDay(new Date(event.target_date));
-  const createdAt = startOfDay(new Date(event.created_at)); // 🌟 引入真实的创建时间
+
+  // 🌟 修复点 1：增加数据兼容性保护（Fallback）
+  // 如果旧数据没有 created_at，默认取今天，避免 new Date(undefined) 产生 NaN 导致白屏
+  const createdAt = event.created_at
+    ? startOfDay(new Date(event.created_at))
+    : today;
 
   const isAnniversary = event.event_type === "anniversary";
 
@@ -54,7 +59,18 @@ export default function EventCard({ event }: EventCardProps) {
     displayDays = differenceInDays(nextAnniv, today);
     prefixText = "NEXT";
     targetDisplayDate = nextAnniv;
-    progressPercentage = 100; // 纪念日默认进度条满格（或你可以根据需要调整）
+
+    // 🌟 修复点 2：计算纪念日一整年的动态进度条
+    const lastAnniv = setYear(nextAnniv, nextAnniv.getFullYear() - 1);
+    const totalYearDays = differenceInDays(nextAnniv, lastAnniv); // 通常是 365 或 366天
+    const daysPassed = differenceInDays(today, lastAnniv);
+
+    if (totalYearDays <= 0) {
+      progressPercentage = 100;
+    } else {
+      progressPercentage = (daysPassed / totalYearDays) * 100;
+      progressPercentage = Math.max(0, Math.min(100, progressPercentage));
+    }
   } else {
     isPast =
       isBefore(originalTarget, today) && !isSameDay(originalTarget, today);
@@ -123,7 +139,7 @@ export default function EventCard({ event }: EventCardProps) {
           </button>
         </div>
 
-        {/* 🌟 修复点 1：加入了 title={event.title}，配合 line-clamp-1 实现截断与悬停提示 */}
+        {/* 🌟 加入了 title={event.title}，配合 line-clamp-1 实现截断与悬停提示 */}
         <h2
           className="card-title text-3xl font-black text-base-content tracking-tight line-clamp-1 mb-2"
           title={event.title}
@@ -186,10 +202,8 @@ export default function EventCard({ event }: EventCardProps) {
             <motion.div
               initial={{ width: 0 }}
               animate={{
-                // 🌟 修复点 2：使用计算好的实际百分比，而不是定死的 365 天
-                width: isAnniversary
-                  ? "100%"
-                  : `${Math.max(5, progressPercentage)}%`,
+                // 🌟 修复点 3：统一使用计算好的百分比，不再判断 isAnniversary 强行给 100%
+                width: `${Math.max(5, progressPercentage)}%`,
               }}
               style={{ backgroundColor: importanceColor }}
               className="h-full rounded-full transition-all duration-1000"

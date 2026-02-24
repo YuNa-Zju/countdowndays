@@ -60,7 +60,7 @@ export const useEventStore = create<EventState>((set, get) => ({
       });
     } catch (error) {
       console.error("创建日程失败:", error);
-      toast.error("创建失败", {
+      toast.error(`创建失败: ${error}`, {
         icon: <XCircle className="w-5 h-5 text-error" />,
       });
     }
