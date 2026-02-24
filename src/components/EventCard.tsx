@@ -5,6 +5,8 @@ import {
   CalendarHeart,
   History,
   AlignLeft,
+  CalendarPlus,
+  Clock,
 } from "lucide-react";
 import {
   isBefore,
@@ -37,19 +39,13 @@ export default function EventCard({ event }: EventCardProps) {
 
   const isAnniversary = event.event_type === "anniversary";
 
-  // 🌟 修复：将 isPast 的判断提前到顶层
+  // 判断是否为过去的过期任务
   const isPastTask =
     !isAnniversary &&
     isBefore(originalTarget, today) &&
     !isSameDay(originalTarget, today);
 
-  // 🌟 修复：将 useEffect 移到组件最顶层，彻底解决 Rules of Hooks 报错
-  // useEffect(() => {
-  //   if (isPastTask) {
-  //     const timer = setTimeout(() => deleteEventOptimistic(event.id), 2000);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [isPastTask, event.id, deleteEventOptimistic]);
+  // （注：之前这里有定时删除过期的代码，由于引入了归档箱，现在已经被移除了，不要加回来）
 
   let displayDays = 0;
   let prefixText = "";
@@ -60,7 +56,12 @@ export default function EventCard({ event }: EventCardProps) {
   if (isAnniversary) {
     if (isBefore(originalTarget, today) || isSameDay(originalTarget, today)) {
       const dur = intervalToDuration({ start: originalTarget, end: today });
-      elapsedText = `${dur.years || 0}年${dur.months || 0}月${dur.days || 0}天`;
+      // 🌟 智能滤零：如果为 0 则不显示（比如 0年1月 变成 1月），如果是完全的一天都没过，则保底显示 0天
+      const y = dur.years ? `${dur.years}年` : "";
+      const m = dur.months ? `${dur.months}月` : "";
+      const d =
+        dur.days || (!dur.years && !dur.months) ? `${dur.days || 0}天` : "";
+      elapsedText = `${y}${m}${d}`;
     }
     let nextAnniv = setYear(originalTarget, today.getFullYear());
     if (isBefore(nextAnniv, today) && !isSameDay(nextAnniv, today)) {
@@ -157,20 +158,34 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
         )}
 
-        {isAnniversary && (
-          <div className="mt-2 space-y-1.5 text-sm font-bold text-base-content/50 bg-base-100/40 p-3 rounded-2xl border border-base-content/5">
-            <div className="flex items-center gap-2">
-              <CalendarHeart className="w-4 h-4" />
-              {format(originalTarget, "yyyy/MM/dd")} 开启
-            </div>
-            {elapsedText && (
+        {/* 🌟 核心修改区：统一了 Task 和 Anniversary 的补充信息排版 */}
+        <div className="mt-2 space-y-1.5 text-sm font-bold text-base-content/50 bg-base-100/40 p-3 rounded-2xl border border-base-content/5">
+          {isAnniversary ? (
+            <>
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4" />
-                已陪伴 {elapsedText}
+                <CalendarHeart className="w-4 h-4" />
+                {format(originalTarget, "yyyy/MM/dd")} 起始
               </div>
-            )}
-          </div>
-        )}
+              {elapsedText && (
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  已陪伴 {elapsedText}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <CalendarPlus className="w-4 h-4" />
+                {format(createdAt, "yyyy/MM/dd")} 创建
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                已推进 {Math.max(0, differenceInDays(today, createdAt))} 天
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="mt-auto pt-6">
           <div

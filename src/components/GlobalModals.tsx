@@ -82,7 +82,7 @@ export default function GlobalModals() {
               取消
             </button>
             <button
-              className="btn btn-error rounded-full px-6"
+              className="btn btn-error rounded-full px-6 border-2 border-transparent hover:border-black"
               onClick={handleDelete}
             >
               删除
