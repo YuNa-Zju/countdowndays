@@ -29,7 +29,7 @@ export default function CommandPalette() {
 
   return (
     // 🌟 1. 我们自己手写的全屏遮罩，彻底告别 Portal 带来的主题丢失问题！
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 sm:p-6">
       {/* 沉浸式毛玻璃背景 */}
       <div
         className="absolute inset-0 bg-neutral/30 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
@@ -38,9 +38,9 @@ export default function CommandPalette() {
 
       {/* 🌟 2. 核心弹窗：纯 Tailwind 打造的旗舰级卡片 */}
       <Command
-        className="relative w-full max-w-2xl bg-base-100 rounded-[2rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-base-200/80 overflow-hidden flex flex-col animate-in fade-in zoom-in-[0.98] duration-200
+        className="relative w-full max-w-2xl bg-base-100 rounded-4xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-base-200/80 overflow-hidden flex flex-col animate-in fade-in zoom-in-[0.98] duration-200
         /* 魔法：利用 Tailwind 的任意子代选择器直接控制内部分组标题的样式，无需写 CSS！ */
-        [&_[cmdk-group-heading]]:px-5 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:text-base-content/40 [&_[cmdk-group-heading]]:tracking-widest [&_[cmdk-group-heading]]:uppercase
+        **:[[cmdk-group-heading]]:px-5 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-bold **:[[cmdk-group-heading]]:text-base-content/40 **:[[cmdk-group-heading]]:tracking-widest **:[[cmdk-group-heading]]:uppercase
         "
       >
         {/* 🔍 顶部搜索区 */}

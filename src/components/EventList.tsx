@@ -1,16 +1,48 @@
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEventStore } from "../store/eventStore";
 import { useUiBus } from "../store/uiBus";
 import EventCard from "./EventCard";
-import { LayoutGrid, Layers } from "lucide-react";
+import { LayoutGrid, Layers, Archive, CalendarDays, Inbox } from "lucide-react";
 import { sortEventsOptimally } from "../utils/dateUtils";
+import { isBefore, isSameDay, startOfDay } from "date-fns";
 
 export default function EventList() {
   const { events } = useEventStore();
   const { viewMode, toggleViewMode, expandedGroups, toggleGroup } = useUiBus();
 
-  const sortedEvents = sortEventsOptimally(events);
+  // 🌟 新增：当前激活的 Tab 状态
+  const [activeTab, setActiveTab] = useState<"active" | "archive">("active");
 
+  // 🌟 新增：智能分离活跃事件与归档（过期）事件
+  const { activeEvents, archivedEvents } = useMemo(() => {
+    const today = startOfDay(new Date());
+    const active: typeof events = [];
+    const archived: typeof events = [];
+
+    events.forEach((event) => {
+      const target = startOfDay(new Date(event.target_date));
+      // 判断是否为过期的任务（纪念日永远不会过期）
+      const isPastTask =
+        event.event_type === "task" &&
+        isBefore(target, today) &&
+        !isSameDay(target, today);
+
+      if (isPastTask) {
+        archived.push(event);
+      } else {
+        active.push(event);
+      }
+    });
+
+    return { activeEvents: active, archivedEvents: archived };
+  }, [events]);
+
+  // 根据当前 Tab 决定要渲染的事件源
+  const currentEvents = activeTab === "active" ? activeEvents : archivedEvents;
+  const sortedEvents = sortEventsOptimally(currentEvents);
+
+  // 分组逻辑只针对当前显示的事件
   const groupedEvents = sortedEvents.reduce(
     (acc, event) => {
       if (!event.categories || event.categories.length === 0) {
@@ -32,10 +64,48 @@ export default function EventList() {
 
   return (
     <div className="pb-24">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-base-content tracking-tight">
-          我的倒数日
-        </h1>
+      {/* 🌟 顶部导航区：包含了 Tab 切换和视图切换 */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        {/* DaisyUI Boxed Tabs */}
+        <div
+          role="tablist"
+          className="tabs tabs-boxed bg-base-200/50 p-1 font-bold"
+        >
+          <button
+            role="tab"
+            className={`tab h-10 px-5 rounded-xl transition-all ${
+              activeTab === "active"
+                ? "tab-active bg-base-100 shadow-sm text-primary"
+                : "text-base-content/50 hover:text-base-content/80"
+            }`}
+            onClick={() => setActiveTab("active")}
+          >
+            <CalendarDays className="w-4 h-4 mr-2" />
+            进行中
+            <span className="ml-2 bg-base-content/10 px-2 py-0.5 rounded-full text-[10px]">
+              {activeEvents.length}
+            </span>
+          </button>
+
+          <button
+            role="tab"
+            className={`tab h-10 px-5 rounded-xl transition-all ${
+              activeTab === "archive"
+                ? "tab-active bg-base-100 shadow-sm text-primary"
+                : "text-base-content/50 hover:text-base-content/80"
+            }`}
+            onClick={() => setActiveTab("archive")}
+          >
+            <Archive className="w-4 h-4 mr-2" />
+            归档箱
+            {archivedEvents.length > 0 && (
+              <span className="ml-2 bg-base-content/10 px-2 py-0.5 rounded-full text-[10px]">
+                {archivedEvents.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         <button
           onClick={toggleViewMode}
           className="btn btn-sm btn-ghost rounded-full shadow-sm px-4"
@@ -52,26 +122,39 @@ export default function EventList() {
         </button>
       </div>
 
+      {/* 🌟 空状态展示（比如归档箱没有内容时） */}
+      {sortedEvents.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-20 opacity-30 select-none"
+        >
+          <Inbox className="w-20 h-20 mb-4 stroke-1" />
+          <p className="text-lg font-bold tracking-widest">
+            {activeTab === "active" ? "暂无进行中的日子" : "归档箱空空如也"}
+          </p>
+        </motion.div>
+      )}
+
       {/* 视图切换动画 */}
       <AnimatePresence mode="wait">
-        {viewMode === "flat" ? (
+        {sortedEvents.length > 0 && viewMode === "flat" ? (
           <motion.div
-            key="flat"
+            key={`flat-${activeTab}`} // 加上 activeTab 确保切换 Tab 时触发动画
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {/* 🌟 核心修复 1：平铺视图的删除动画 */}
             <AnimatePresence mode="popLayout">
               {sortedEvents.map((event) => (
                 <motion.div
                   key={event.id}
-                  layout // 让卡片具有移位动画能力
+                  layout
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }} // 消失时缩小并稍微模糊
+                  exit={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                 >
                   <EventCard event={event} />
@@ -79,9 +162,9 @@ export default function EventList() {
               ))}
             </AnimatePresence>
           </motion.div>
-        ) : (
+        ) : sortedEvents.length > 0 ? (
           <motion.div
-            key="grouped"
+            key={`grouped-${activeTab}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -128,12 +211,11 @@ export default function EventList() {
                     <div
                       className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 pb-2 border-t border-transparent group-has-checked:border-base-200/50 ${appleSmoothTransition}`}
                     >
-                      {/* 🌟 核心修复 2：分组视图内部的删除动画 */}
                       <AnimatePresence mode="popLayout">
                         {catEvents.map((event) => (
                           <motion.div
                             key={`${categoryName}-${event.id}`}
-                            layout // 让卡片具有移位动画能力
+                            layout
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{
@@ -153,7 +235,7 @@ export default function EventList() {
               );
             })}
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );
