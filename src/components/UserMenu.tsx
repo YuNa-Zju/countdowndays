@@ -182,7 +182,7 @@ export default function UserMenu() {
       {/* --- 🌟 关于 Momentary 弹窗 (Modal) --- */}
       <AnimatePresence>
         {showAbout && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             {/* 背景遮罩 */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -206,7 +206,7 @@ export default function UserMenu() {
                 <X className="w-5 h-5 opacity-30" />
               </button>
 
-              <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
+              <div className="w-20 h-20 bg-primary/10 rounded-4xl flex items-center justify-center mb-6 shadow-inner">
                 <Zap className="w-10 h-10 text-primary" />
               </div>
 
